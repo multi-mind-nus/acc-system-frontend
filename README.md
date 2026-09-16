@@ -20,3 +20,4 @@ docker run --rm -p 8000:8000 acc-system-frontend:local
 Open `http://localhost:8000`. Production traffic reaches this container through the Nginx service defined in the backend repository.
 
 The GitHub Actions workflow needs one secret, `AWS_ROLE_ARN`, and two repository variables, `AWS_REGION` and `ECR_FRONTEND_REPOSITORY`.
+Pull requests only build the application. Pushes to `main`, version tags, and manual runs also publish the commit SHA and `main` image tags to ECR.

@@ -32,12 +32,12 @@ jobs:
       - name: Build image
         run: docker build --build-arg APP_VERSION="$GITHUB_SHA" --tag acc-system-frontend:test .
       - uses: aws-actions/configure-aws-credentials@v6.3.0
-        if: github.event_name == 'push'
+        if: github.event_name != 'pull_request'
         with:
           role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
           aws-region: ${{ vars.AWS_REGION }}
       - name: Push to ECR
-        if: github.event_name == 'push'
+        if: github.event_name != 'pull_request'
         env:
           REPOSITORY: ${{ vars.ECR_FRONTEND_REPOSITORY }}
           AWS_REGION: ${{ vars.AWS_REGION }}
