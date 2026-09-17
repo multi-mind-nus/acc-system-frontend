@@ -7,6 +7,7 @@ Vue 3 deployment baseline for the accounting document collection system.
 ```bash
 pnpm install --frozen-lockfile
 pnpm dev
+pnpm lint
 ```
 
 ## Build and run the image
