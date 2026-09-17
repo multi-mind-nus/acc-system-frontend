@@ -19,11 +19,13 @@ ARG APP_VERSION=dev
 LABEL org.opencontainers.image.revision=${APP_VERSION}
 
 COPY --from=builder /app/dist /public
+COPY static-web-server.toml /etc/static-web-server.toml
 
 ENV SERVER_ROOT=/public \
     SERVER_PORT=8000 \
     SERVER_HEALTH=true \
-    SERVER_FALLBACK_PAGE=/public/index.html
+    SERVER_FALLBACK_PAGE=/public/index.html \
+    SERVER_CONFIG_FILE=/etc/static-web-server.toml
 
 USER 10001:10001
 
