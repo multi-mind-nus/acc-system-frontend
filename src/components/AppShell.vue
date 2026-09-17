@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import { Building2, ChevronRight, LogOut, UserRound } from '@lucide/vue'
+import { Building2, BriefcaseBusiness, ChevronRight, ContactRound, LogOut, UsersRound, UserRound } from '@lucide/vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
 import { readApiError } from '@/api/client'
@@ -17,8 +17,17 @@ const { t } = useI18n()
 const logoutError = ref<ReturnType<typeof readApiError> | null>(null)
 const homePath = computed(() => `/${props.area}`)
 const profilePath = computed(() => `/${props.area}/profile`)
+const navigation = computed(() => [
+  { path: homePath.value, title: 'nav.workspace', icon: Building2 },
+  ...(auth.isStaff ? [{ path: '/staff/clients', title: 'accounts.clients', icon: BriefcaseBusiness }] : []),
+  ...(auth.user?.firmRole === 'FIRM_ADMIN' ? [{ path: '/staff/admin/users', title: 'accounts.employees', icon: UsersRound }] : []),
+  ...(!auth.isStaff && auth.user?.clientMemberships.some(member => member.role === 'CLIENT_ADMIN') ? [{ path: '/client/contacts', title: 'accounts.contacts', icon: ContactRound }] : []),
+  { path: profilePath.value, title: 'nav.profile', icon: UserRound },
+])
+const active = (path: string) => path === homePath.value ? route.path === path : route.path === path || route.path.startsWith(`${path}/`)
 const initials = computed(() => auth.user?.name.trim().split(/\s+/).map(part => part[0]).slice(0, 2).join('').toUpperCase() ?? '')
 const pageTitle = computed(() => {
+  if (typeof route.meta.title === 'string') return t(route.meta.title)
   if (route.name === 'staff-not-found' || route.name === 'client-not-found') return t('notFound.title')
   return route.path.endsWith('/profile') ? t('nav.profile') : t('nav.workspace')
 })
@@ -48,18 +57,14 @@ async function signOut() {
       </div>
       <nav class="mt-7 flex-1 space-y-1 px-4" :aria-label="t('nav.primary')">
         <RouterLink
-          :to="homePath"
+          v-for="item in navigation"
+          :key="item.path"
+          :to="item.path"
           class="flex h-11 items-center gap-3 rounded-lg px-3 text-sm text-white/65 transition-colors hover:bg-white/[0.06] hover:text-white"
-          exact-active-class="!bg-sidebar-accent !text-white"
+          :class="active(item.path) ? '!bg-sidebar-accent !text-white' : ''"
+          :aria-current="active(item.path) ? 'page' : undefined"
         >
-          <Building2 class="size-[18px]" />{{ t('nav.workspace') }}
-        </RouterLink>
-        <RouterLink
-          :to="profilePath"
-          class="flex h-11 items-center gap-3 rounded-lg px-3 text-sm text-white/65 transition-colors hover:bg-white/[0.06] hover:text-white"
-          exact-active-class="!bg-sidebar-accent !text-white"
-        >
-          <UserRound class="size-[18px]" />{{ t('nav.profile') }}
+          <component :is="item.icon" class="size-[18px]" />{{ t(item.title) }}
         </RouterLink>
       </nav>
 
@@ -91,12 +96,9 @@ async function signOut() {
             <LogOut class="size-4" />
           </Button>
         </div>
-        <nav class="flex gap-6 px-5 text-sm sm:px-8 lg:hidden" :aria-label="t('nav.primary')">
-          <RouterLink :to="homePath" class="border-b-2 border-transparent py-3 text-muted-foreground" exact-active-class="!border-primary !text-primary">
-            {{ t('nav.workspace') }}
-          </RouterLink>
-          <RouterLink :to="profilePath" class="border-b-2 border-transparent py-3 text-muted-foreground" exact-active-class="!border-primary !text-primary">
-            {{ t('nav.profile') }}
+        <nav class="flex gap-6 overflow-x-auto px-5 text-sm sm:px-8 lg:hidden" :aria-label="t('nav.primary')">
+          <RouterLink v-for="item in navigation" :key="item.path" :to="item.path" class="shrink-0 border-b-2 border-transparent py-3 text-muted-foreground" :class="active(item.path) ? '!border-primary !text-primary' : ''" :aria-current="active(item.path) ? 'page' : undefined">
+            {{ t(item.title) }}
           </RouterLink>
         </nav>
       </header>

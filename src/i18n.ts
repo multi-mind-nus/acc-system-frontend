@@ -1,4 +1,7 @@
 import { createI18n } from 'vue-i18n'
+import { accountsMessages } from './i18n/accounts'
+import { peopleMessages } from './i18n/people'
+import { contactsMessages } from './i18n/contacts'
 
 export type AppLocale = 'en' | 'zh-CN'
 let savedLocale: string | null = null
@@ -7,6 +10,9 @@ const initialLocale: AppLocale = savedLocale === 'zh-CN' ? 'zh-CN' : 'en'
 
 const messages = {
   en: {
+    ...accountsMessages.en,
+    ...peopleMessages.en,
+    ...contactsMessages.en,
     app: { name: 'LedgerFlow' },
     auth: {
       signIn: 'Sign in', signOut: 'Sign out', email: 'Email', password: 'Password',
@@ -23,8 +29,12 @@ const messages = {
       membershipsEmptyHint: 'Your client memberships will appear here when an administrator adds you.',
       firm: 'Organisation', name: 'Name', role: 'Your role', timezone: 'Timezone',
       memberships: 'Client memberships', client: 'Client',
-      membershipsHint: 'Client accounts you belong to. Staff access is determined by your organisation role and assignments.',
+      membershipsHint: 'Client accounts you have joined and your role in each one.',
       noClients: 'No client memberships for this account.',
+      managedClients: 'Client access', managedClientsHint: 'You can access all {total} clients as a firm administrator.',
+      assignedClients: 'Assigned clients', assignedClientsHint: 'Clients currently assigned to your account: {total}.',
+      viewClients: 'View clients', noAssignedClients: 'No clients assigned to you.',
+      noAssignedClientsHint: 'Ask a firm administrator to assign a client to your account.',
       firmAdmin: 'Firm administrator', accountant: 'Accountant',
       clientAdmin: 'Client administrator', clientSubmitter: 'Client submitter',
     },
@@ -72,6 +82,12 @@ const messages = {
         SELF_DISABLE_FORBIDDEN: 'You cannot disable your own account.',
         STAFF_MEMBERSHIP_REQUIRED: 'This account is not a staff member.',
         CLIENT_CODE_EXISTS: 'This client code is already in use. Choose another code.',
+        INVALID_ASSIGNMENT: 'Assignments must reference active accountants in this firm. Reload the list and remove unavailable selections.',
+        LAST_ADMIN_REQUIRED: 'Keep at least one administrator in your firm.',
+        LAST_CLIENT_ADMIN_REQUIRED: 'Keep at least one active client administrator. Invite or promote another contact first.',
+        INVITATION_ALREADY_ACCEPTED: 'This invitation has already been accepted. Manage the person’s access in the member list.',
+        CLIENT_DISABLED: 'This client is disabled. Enable the client before sending an invitation.',
+        ACCOUNT_DISABLED: 'This account is disabled. Ask an administrator to enable it first.',
       },
     },
     common: { language: 'Language', english: 'English', chinese: '简体中文' },
@@ -83,6 +99,9 @@ const messages = {
     },
   },
   'zh-CN': {
+    ...accountsMessages['zh-CN'],
+    ...peopleMessages['zh-CN'],
+    ...contactsMessages['zh-CN'],
     app: { name: 'LedgerFlow' },
     auth: {
       signIn: '登录', signOut: '退出登录', email: '邮箱', password: '密码',
@@ -99,8 +118,12 @@ const messages = {
       membershipsEmptyHint: '管理员将你加入客户后，成员关系会显示在这里。',
       firm: '所属机构', name: '名称', role: '你的角色', timezone: '时区',
       memberships: '客户成员关系', client: '客户',
-      membershipsHint: '你作为成员加入的客户。员工的访问范围由事务所角色和分配关系决定。',
+      membershipsHint: '你已加入的客户，以及在各客户中的角色。',
       noClients: '此账户暂无客户成员关系。',
+      managedClients: '客户访问范围', managedClientsHint: '你是事务所管理员，可以访问全部 {total} 个客户。',
+      assignedClients: '负责客户', assignedClientsHint: '当前分配给你的客户共 {total} 个。',
+      viewClients: '查看客户', noAssignedClients: '暂未分配客户。',
+      noAssignedClientsHint: '请联系事务所管理员为你分配客户。',
       firmAdmin: '事务所管理员', accountant: '会计',
       clientAdmin: '客户管理员', clientSubmitter: '资料提交人',
     },
@@ -148,6 +171,12 @@ const messages = {
         SELF_DISABLE_FORBIDDEN: '不能停用你自己的账户。',
         STAFF_MEMBERSHIP_REQUIRED: '此账户不是事务所员工。',
         CLIENT_CODE_EXISTS: '客户编码已存在，请使用其他编码。',
+        INVALID_ASSIGNMENT: '只能分配本事务所的在职会计。请刷新列表并取消不可用的会计。',
+        LAST_ADMIN_REQUIRED: '事务所必须保留至少一名管理员。',
+        LAST_CLIENT_ADMIN_REQUIRED: '请保留至少一名有效的客户管理员，先邀请或提升其他联系人。',
+        INVITATION_ALREADY_ACCEPTED: '此邀请已被接受，请在成员列表管理该用户权限。',
+        CLIENT_DISABLED: '此客户已停用，请先启用客户再邀请联系人。',
+        ACCOUNT_DISABLED: '此账户已停用，请联系管理员启用。',
       },
     },
     common: { language: '语言', english: 'English', chinese: '简体中文' },

@@ -2,7 +2,7 @@
 
 Vue 3 client for the accounting document collection system, using shadcn-vue, Pinia, Vue Router, Axios and Vue I18n.
 
-F2 includes sign-in, session recovery, staff/client route boundaries, account/password settings, English/Chinese translations, and appearance preferences. Staff/customer management screens and invitation acceptance are the next phase; email delivery is not yet connected.
+F2 includes sign-in, session recovery, staff/client route boundaries, account/password settings, English/Chinese translations, and appearance preferences. F3 adds staff and customer management, contacts, bank accounts, accountant assignments, and invitation acceptance. Invitations generate a one-time link for manual sharing; email delivery is not yet connected.
 
 ## Local development
 
