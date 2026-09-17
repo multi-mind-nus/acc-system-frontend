@@ -14,7 +14,7 @@ pnpm test
 pnpm build
 ```
 
-The browser calls `/api/v1` on the same origin. For integrated acceptance, use the backend repository's Docker Compose stack at `http://localhost`; `pnpm dev` alone does not start or proxy the API. Access tokens are kept in memory; the backend manages the HttpOnly refresh cookie.
+For local development, keep the backend repository's Docker Compose stack running, then open `http://localhost:5173` after `pnpm dev`. Vite proxies `/api` to the local Nginx/API stack and keeps hot module replacement enabled. Access tokens remain in memory; the backend manages the HttpOnly refresh cookie.
 
 Language, colour theme and light/dark/system mode live under **Account → Appearance & language** and are saved in this browser. New browsers use English, Evergreen and the system appearance.
 

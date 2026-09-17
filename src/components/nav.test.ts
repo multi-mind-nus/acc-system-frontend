@@ -33,7 +33,7 @@ it.each<{
     legacy: false, locale: 'en',
     messages: { en: {
       ...accountsMessages.en,
-      app: { name: 'LedgerFlow' }, auth: { signOut: 'Sign out' }, home: { firm: 'Organisation' },
+      app: { name: 'Client Records' }, auth: { signOut: 'Sign out' }, home: { firm: 'Organisation' },
       nav: { primary: 'Main navigation', workspace: 'Workspace', profile: 'Account' },
     } },
   }))

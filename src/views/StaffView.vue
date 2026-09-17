@@ -98,11 +98,11 @@ onBeforeUnmount(() => { request++ })
 <template>
   <section class="space-y-7">
     <header>
-      <h1 class="text-[28px] font-semibold tracking-tight">{{ t('people.staffTitle') }}</h1>
+      <h1 class="text-[32px] leading-tight font-semibold tracking-[-0.025em]">{{ t('people.staffTitle') }}</h1>
       <p class="mt-2 text-sm text-muted-foreground">{{ t('people.staffDescription') }}</p>
     </header>
 
-    <section class="overflow-hidden rounded-xl border bg-card shadow-[0_2px_6px_#182d2308]" :aria-busy="loading">
+    <section class="app-panel overflow-hidden" :aria-busy="loading">
       <form class="flex flex-wrap items-end gap-3 border-b px-5 py-4 sm:px-6" @submit.prevent="applyFilters()">
         <div class="min-w-48 flex-1 space-y-2">
           <Label for="staff-search" class="sr-only">{{ t('people.searchStaff') }}</Label>

@@ -19,7 +19,9 @@ const router = useRouter()
 const currentPassword = ref('')
 const newPassword = ref('')
 const submitting = ref(false)
+const loggingOut = ref(false)
 const error = ref<ReturnType<typeof readApiError> | null>(null)
+const logoutError = ref<ReturnType<typeof readApiError> | null>(null)
 const roleKeys = {
   FIRM_ADMIN: 'home.firmAdmin',
   ACCOUNTANT: 'home.accountant',
@@ -52,17 +54,30 @@ async function changePassword() {
     submitting.value = false
   }
 }
+
+async function signOut() {
+  loggingOut.value = true
+  logoutError.value = null
+  try {
+    await auth.logout()
+    await router.replace('/login')
+  } catch (caught) {
+    logoutError.value = readApiError(caught)
+  } finally {
+    loggingOut.value = false
+  }
+}
 </script>
 
 <template>
   <section class="space-y-7">
     <header>
-      <h1 class="text-[28px] font-semibold tracking-tight">{{ t('profile.title') }}</h1>
+      <h1 class="text-[32px] leading-tight font-semibold tracking-[-0.025em]">{{ t('profile.title') }}</h1>
       <p class="mt-2 text-sm text-muted-foreground">{{ t('profile.description') }}</p>
     </header>
 
     <div class="grid items-start gap-6 xl:grid-cols-[minmax(0,0.9fr)_minmax(0,1.2fr)]">
-      <section class="overflow-hidden rounded-xl border bg-card shadow-[0_2px_6px_#182d2308]">
+      <section class="app-panel overflow-hidden">
         <header class="border-b px-6 py-5">
           <h2 class="text-base font-semibold">{{ t('profile.identity') }}</h2>
         </header>
@@ -90,7 +105,7 @@ async function changePassword() {
         </div>
       </section>
 
-      <section class="overflow-hidden rounded-xl border bg-card shadow-[0_2px_6px_#182d2308]">
+      <section class="app-panel overflow-hidden">
         <header class="border-b px-6 py-5">
           <h2 class="text-base font-semibold">{{ t('profile.security') }}</h2>
         </header>
@@ -114,7 +129,7 @@ async function changePassword() {
       </section>
     </div>
 
-    <section class="overflow-hidden rounded-xl border bg-card shadow-[0_2px_6px_#182d2308]" aria-labelledby="preferences-title">
+    <section class="app-panel overflow-hidden" aria-labelledby="preferences-title">
       <header class="border-b px-6 py-5">
         <h2 id="preferences-title" class="text-base font-semibold">{{ t('appearance.title') }}</h2>
         <p class="mt-1.5 text-sm text-muted-foreground">{{ t('profile.languageHint') }}</p>
@@ -151,6 +166,13 @@ async function changePassword() {
           </Select>
         </div>
       </div>
+    </section>
+
+    <section class="app-panel overflow-hidden">
+      <ErrorNotice v-if="logoutError" v-bind="logoutError" class="m-4" />
+      <Button type="button" variant="ghost" class="h-12 w-full justify-start rounded-none px-6 text-[15px] text-destructive hover:bg-destructive/5 hover:text-destructive" :disabled="loggingOut" @click="signOut">
+        {{ t('auth.signOut') }}
+      </Button>
     </section>
   </section>
 </template>

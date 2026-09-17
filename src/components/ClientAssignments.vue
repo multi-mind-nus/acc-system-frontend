@@ -84,7 +84,7 @@ onBeforeUnmount(() => { generation++ })
 </script>
 
 <template>
-  <section class="overflow-hidden rounded-xl border bg-card shadow-[0_2px_6px_#182d2308]" :aria-busy="loading || busy">
+  <section class="app-panel overflow-hidden" :aria-busy="loading || busy">
     <header class="border-b px-6 py-5">
       <h2 class="text-base font-semibold">{{ t('contacts.assignments') }}</h2>
       <p class="mt-1.5 text-sm text-muted-foreground">{{ t('contacts.assignmentsHint') }}</p>

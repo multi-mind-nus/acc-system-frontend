@@ -46,7 +46,7 @@ onMounted(loadClients)
   <section class="space-y-7">
     <header class="flex flex-wrap items-center justify-between gap-4">
       <div>
-        <h1 class="text-[28px] font-semibold tracking-tight">{{ t('nav.workspace') }}</h1>
+        <h1 class="text-[32px] leading-tight font-semibold tracking-[-0.025em]">{{ t('nav.workspace') }}</h1>
         <p class="mt-2 text-sm text-muted-foreground">{{ t('home.description') }}</p>
       </div>
       <Button as-child variant="outline" class="h-9 gap-2 bg-card px-3">
@@ -54,7 +54,7 @@ onMounted(loadClients)
       </Button>
     </header>
 
-    <section class="overflow-hidden rounded-xl border bg-card shadow-[0_2px_6px_#182d2310]" aria-labelledby="organisation-title">
+    <section class="app-panel overflow-hidden" aria-labelledby="organisation-title">
       <div class="flex items-center gap-4 border-b px-5 py-6 sm:px-7">
         <span class="grid size-12 shrink-0 place-items-center rounded-xl border border-primary/10 bg-accent text-primary"><Building2 class="size-6" /></span>
         <div class="min-w-0">
@@ -74,7 +74,7 @@ onMounted(loadClients)
       </dl>
     </section>
 
-    <section v-if="auth.isStaff" class="overflow-hidden rounded-xl border bg-card shadow-[0_2px_6px_#182d2308]" aria-labelledby="staff-clients-title">
+    <section v-if="auth.isStaff" class="app-panel overflow-hidden" aria-labelledby="staff-clients-title">
       <header class="flex flex-wrap items-start justify-between gap-4 border-b px-5 py-5 sm:px-7">
         <div>
           <h2 id="staff-clients-title" class="text-base font-semibold">{{ t(isAdmin ? 'home.managedClients' : 'home.assignedClients') }}</h2>
@@ -91,7 +91,7 @@ onMounted(loadClients)
       <div v-else class="flex min-h-40 items-start gap-4 px-5 py-9 sm:items-center sm:px-7"><FolderOpen class="mt-0.5 size-6 shrink-0 text-muted-foreground/65" /><div><p class="text-sm font-medium">{{ t(isAdmin ? 'accounts.noClients' : 'home.noAssignedClients') }}</p><p class="mt-1.5 text-sm leading-6 text-muted-foreground">{{ t(isAdmin ? 'accounts.noClientsHint' : 'home.noAssignedClientsHint') }}</p></div></div>
     </section>
 
-    <section v-else class="overflow-hidden rounded-xl border bg-card shadow-[0_2px_6px_#182d2308]" aria-labelledby="memberships-title">
+    <section v-else class="app-panel overflow-hidden" aria-labelledby="memberships-title">
       <header class="border-b px-5 py-5 sm:px-7">
         <h2 id="memberships-title" class="text-base font-semibold">{{ t('home.memberships') }}</h2>
         <p class="mt-1.5 max-w-3xl text-sm leading-6 text-muted-foreground">{{ t('home.membershipsHint') }}</p>

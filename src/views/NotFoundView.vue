@@ -23,7 +23,7 @@ const withinWorkspace = computed(() => route.matched.some((record) => record.met
     </header>
 
     <section :class="['flex items-center justify-center py-12 sm:py-16', withinWorkspace ? 'min-h-[65vh]' : 'min-h-[calc(100vh-88px)] px-6']">
-      <div class="w-full max-w-[780px] overflow-hidden rounded-xl border bg-card shadow-[0_2px_8px_#17201d04]">
+      <div class="app-panel w-full max-w-[780px] overflow-hidden">
         <div class="grid items-center gap-5 px-6 pt-8 pb-10 sm:gap-8 sm:p-10 md:grid-cols-[180px_1fr] md:px-12 md:py-14">
           <svg class="mx-auto w-[150px] sm:w-[180px]" viewBox="0 0 180 200" fill="none" aria-hidden="true">
             <ellipse cx="86" cy="184" rx="64" ry="6" fill="var(--muted)" />

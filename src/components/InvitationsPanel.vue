@@ -129,7 +129,7 @@ onBeforeUnmount(() => { request++; emit('busy-change', false) })
 </script>
 
 <template>
-  <section class="overflow-hidden rounded-xl border bg-card shadow-[0_2px_6px_#182d2308]" :aria-busy="loading">
+  <section class="app-panel overflow-hidden" :aria-busy="loading">
     <header class="flex items-start justify-between gap-4 border-b px-6 py-5">
       <div>
         <h2 class="text-base font-semibold">{{ t('people.invitations') }}</h2>

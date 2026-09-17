@@ -8,7 +8,7 @@ const auth = useAuthStore()
 </script>
 
 <template>
-  <section class="mx-auto mt-12 max-w-lg rounded-xl border bg-card p-8 sm:p-10">
+  <section class="app-panel mx-auto mt-12 max-w-lg p-8 sm:p-10">
     <span class="grid size-12 place-items-center rounded-xl border bg-muted"><LockKeyhole class="size-5 text-muted-foreground" /></span>
     <h1 class="mt-6 text-2xl font-semibold tracking-tight">{{ t('accounts.forbidden') }}</h1>
     <p class="mt-3 text-sm leading-6 text-muted-foreground">{{ t('accounts.forbiddenHint') }}</p>

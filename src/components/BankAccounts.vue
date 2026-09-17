@@ -75,7 +75,7 @@ watch(() => props.clientId, () => { banks.value = []; editing.value = false; pen
 </script>
 
 <template>
-  <section class="overflow-hidden rounded-xl border bg-card" :aria-busy="loading || busy">
+  <section class="app-panel overflow-hidden" :aria-busy="loading || busy">
     <header class="flex flex-wrap items-start justify-between gap-4 border-b px-6 py-5"><div><h2 class="text-base font-semibold">{{ t('accounts.banks') }}</h2><p class="mt-1.5 text-xs leading-5 text-muted-foreground">{{ t('accounts.bankHint') }}</p></div><Button v-if="canManage && !editing" size="sm" variant="outline" :disabled="busy || loading" @click="edit()"><Plus class="size-4" />{{ t('accounts.addBank') }}</Button></header>
     <div v-if="saved" role="status" class="px-6 pt-4 text-sm text-primary">{{ t('accounts.saved') }}</div>
     <div v-if="error" class="space-y-3 p-6"><ErrorNotice v-bind="error" /><Button variant="outline" @click="load">{{ t('accounts.retry') }}</Button></div>

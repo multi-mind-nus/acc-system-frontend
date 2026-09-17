@@ -1,6 +1,7 @@
 export const accountsMessages = {
   en: { accounts: {
     clients: 'Clients', employees: 'Team', contacts: 'Contacts', description: 'Manage client records and the people who work with them.',
+    recordCount: '{count} client records',
     newClient: 'New client', createClient: 'Create client', editClient: 'Edit client',
     search: 'Search', searchHint: 'Search by client name or code', allStatuses: 'All statuses',
     name: 'Legal name', code: 'Client code', currency: 'Base currency', statusLabel: 'Status',
@@ -27,6 +28,7 @@ export const accountsMessages = {
   } },
   'zh-CN': { accounts: {
     clients: '客户', employees: '员工', contacts: '联系人', description: '管理客户资料、联系人与负责会计。',
+    recordCount: '共 {count} 条客户记录',
     newClient: '新增客户', createClient: '创建客户', editClient: '编辑客户',
     search: '搜索', searchHint: '按客户名称或编码搜索', allStatuses: '全部状态',
     name: '法定名称', code: '客户编码', currency: '记账本位币', statusLabel: '状态',

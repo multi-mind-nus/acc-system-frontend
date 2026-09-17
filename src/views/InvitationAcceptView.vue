@@ -63,12 +63,12 @@ async function accept() {
       <div class="flex flex-1 items-center px-6 pt-10 pb-24 sm:px-10 lg:pt-0">
         <div class="mx-auto w-full max-w-[380px]">
           <template v-if="accepted">
-            <h1 class="text-[28px] font-semibold tracking-[-0.035em]">{{ t('people.acceptedTitle') }}</h1>
+            <h1 class="text-[32px] leading-tight font-semibold tracking-[-0.025em]">{{ t('people.acceptedTitle') }}</h1>
             <p class="mt-3 text-sm leading-6 text-muted-foreground" role="status">{{ t(auth.isAuthenticated ? 'people.acceptedSignedInHint' : 'people.acceptedHint') }}</p>
             <Button as-child class="mt-8 h-11 w-full"><RouterLink :to="auth.isAuthenticated ? auth.homePath : '/login'">{{ t(auth.isAuthenticated ? 'notFound.back' : 'auth.signIn') }}</RouterLink></Button>
           </template>
           <template v-else>
-            <h1 class="text-[28px] font-semibold tracking-[-0.035em]">{{ t('people.acceptTitle') }}</h1>
+            <h1 class="text-[32px] leading-tight font-semibold tracking-[-0.025em]">{{ t('people.acceptTitle') }}</h1>
             <p class="mt-3 text-sm leading-6 text-muted-foreground">{{ t('people.acceptHint') }}</p>
             <ErrorNotice v-if="!validToken" code="INVITATION_INVALID" message="" class="mt-6" />
             <ErrorNotice v-else-if="error" v-bind="error" class="mt-6" />

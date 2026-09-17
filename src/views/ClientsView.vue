@@ -54,31 +54,46 @@ watch(() => [route.query.page, route.query.search, route.query.status], load, { 
 <template>
   <section class="space-y-7">
     <header class="flex flex-wrap items-start justify-between gap-4">
-      <div><h1 class="text-[28px] font-semibold tracking-tight">{{ t('accounts.clients') }}</h1><p class="mt-2 text-sm text-muted-foreground">{{ t('accounts.description') }}</p></div>
+      <div>
+        <h1 class="text-[32px] leading-tight font-semibold tracking-[-0.025em]">{{ t('accounts.clients') }}</h1>
+        <p class="mt-2 text-sm text-muted-foreground">{{ t('accounts.description') }}</p>
+      </div>
       <Button v-if="isAdmin" as-child class="h-10"><RouterLink :to="{ name: 'client-new', query: route.query }"><Plus class="size-4" />{{ t('accounts.newClient') }}</RouterLink></Button>
     </header>
-    <section class="overflow-hidden rounded-xl border bg-card shadow-[0_2px_6px_#182d2308]" :aria-busy="loading">
-      <form class="flex flex-wrap gap-3 border-b p-5" @submit.prevent="navigate()">
+    <section class="app-panel overflow-hidden" :aria-busy="loading">
+      <form class="flex flex-wrap items-center gap-3 border-b px-5 py-4" @submit.prevent="navigate()">
         <div class="relative min-w-48 flex-1 sm:max-w-sm">
           <Search class="absolute top-3 left-3 size-4 text-muted-foreground" aria-hidden="true" />
-          <Input v-model="search" class="h-10 pl-9" :placeholder="t('accounts.searchHint')" :aria-label="t('accounts.searchHint')" maxlength="100" />
+          <Input v-model="search" class="h-10 bg-card pl-9" :placeholder="t('accounts.searchHint')" :aria-label="t('accounts.searchHint')" maxlength="100" />
         </div>
         <Select v-model="status" @update:model-value="navigate()">
-          <SelectTrigger size="lg" class="w-40" :aria-label="t('accounts.statusLabel')"><SelectValue /></SelectTrigger>
+          <SelectTrigger size="lg" class="w-40 bg-card" :aria-label="t('accounts.statusLabel')"><SelectValue /></SelectTrigger>
           <SelectContent position="popper"><SelectItem value="all">{{ t('accounts.allStatuses') }}</SelectItem><SelectItem value="ACTIVE">{{ t('accounts.status.ACTIVE') }}</SelectItem><SelectItem value="DISABLED">{{ t('accounts.status.DISABLED') }}</SelectItem></SelectContent>
         </Select>
         <Button type="submit" variant="outline" class="h-10">{{ t('accounts.search') }}</Button>
+        <p class="ml-auto hidden text-xs text-muted-foreground md:block">{{ t('accounts.recordCount', { count: result.total }) }}</p>
       </form>
       <div v-if="error" class="space-y-3 p-5"><ErrorNotice v-bind="error" /><Button variant="outline" @click="load">{{ t('accounts.retry') }}</Button></div>
       <p v-else-if="loading" role="status" class="p-8 text-sm text-muted-foreground">{{ t('accounts.loading') }}</p>
       <template v-else>
-        <div v-if="result.items.length" class="overflow-x-auto">
-          <table class="w-full text-left text-sm">
-            <thead class="bg-muted/40 text-xs text-muted-foreground"><tr><th scope="col" class="px-6 py-3 font-medium">{{ t('accounts.clients') }}</th><th scope="col" class="px-6 py-3 font-medium">{{ t('accounts.code') }}</th><th scope="col" class="px-6 py-3 font-medium">{{ t('accounts.currency') }}</th><th scope="col" class="px-6 py-3 font-medium">{{ t('accounts.statusLabel') }}</th></tr></thead>
+        <div v-if="result.items.length" class="divide-y md:hidden">
+          <RouterLink v-for="client in result.items" :key="client.id" class="block px-5 py-4 transition-colors active:bg-muted/50" :to="{ name: 'client-detail', params: { id: client.id }, query: route.query }">
+            <span class="flex items-start justify-between gap-3">
+              <span class="min-w-0 font-medium leading-5">{{ client.legalName }}</span>
+              <StatusBadge :status="client.status" />
+            </span>
+            <span class="mt-2 flex items-center gap-2 text-xs text-muted-foreground">
+              <span class="font-mono">{{ client.code }}</span><span aria-hidden="true">·</span><span>{{ client.baseCurrency }}</span>
+            </span>
+          </RouterLink>
+        </div>
+        <div v-if="result.items.length" class="hidden overflow-x-auto md:block">
+          <table class="min-w-[720px] w-full text-left text-sm">
+            <thead class="border-b bg-muted/35 text-xs text-muted-foreground"><tr><th scope="col" class="whitespace-nowrap px-5 py-3.5 font-medium sm:px-6">{{ t('accounts.clients') }}</th><th scope="col" class="whitespace-nowrap px-5 py-3.5 font-medium">{{ t('accounts.code') }}</th><th scope="col" class="whitespace-nowrap px-5 py-3.5 font-medium">{{ t('accounts.currency') }}</th><th scope="col" class="whitespace-nowrap px-5 py-3.5 font-medium sm:px-6">{{ t('accounts.statusLabel') }}</th></tr></thead>
             <tbody class="divide-y">
-              <tr v-for="client in result.items" :key="client.id" class="hover:bg-muted/30">
-                <td class="min-w-60 px-6 py-5"><RouterLink class="group inline-flex items-center gap-3 font-medium underline-offset-4 hover:underline focus-visible:outline-ring" :to="{ name: 'client-detail', params: { id: client.id }, query: route.query }"><span class="grid size-9 shrink-0 place-items-center rounded-lg border bg-muted/50 text-muted-foreground"><Building2 class="size-4" /></span>{{ client.legalName }}<ArrowUpRight class="size-3.5 text-muted-foreground opacity-0 group-hover:opacity-100" /></RouterLink></td>
-                <td class="px-6 py-5 font-mono text-xs text-muted-foreground">{{ client.code }}</td><td class="px-6 py-5">{{ client.baseCurrency }}</td><td class="px-6 py-5"><StatusBadge :status="client.status" /></td>
+              <tr v-for="client in result.items" :key="client.id" class="group transition-colors hover:bg-muted/25">
+                <td class="min-w-60 px-5 py-5 sm:px-6"><RouterLink class="inline-flex items-center gap-2 font-medium underline-offset-4 hover:underline focus-visible:outline-ring" :to="{ name: 'client-detail', params: { id: client.id }, query: route.query }">{{ client.legalName }}<ArrowUpRight class="size-3.5 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100" /></RouterLink></td>
+                <td class="px-5 py-5 font-mono text-xs text-muted-foreground">{{ client.code }}</td><td class="px-5 py-5 text-sm">{{ client.baseCurrency }}</td><td class="px-5 py-5 sm:px-6"><StatusBadge :status="client.status" /></td>
               </tr>
             </tbody>
           </table>

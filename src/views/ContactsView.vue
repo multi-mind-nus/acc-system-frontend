@@ -34,7 +34,7 @@ onBeforeRouteUpdate(to => !busy.value || to.query.clientId === route.query.clien
   <section class="space-y-7">
     <header class="flex flex-wrap items-end justify-between gap-5">
       <div>
-        <h1 class="text-[28px] font-semibold tracking-tight">{{ t('contacts.title') }}</h1>
+        <h1 class="text-[32px] leading-tight font-semibold tracking-[-0.025em]">{{ t('contacts.title') }}</h1>
         <p class="mt-2 text-sm text-muted-foreground">{{ t('contacts.description') }}</p>
       </div>
       <div v-if="selected" class="w-full space-y-2 sm:w-72">
@@ -51,7 +51,7 @@ onBeforeRouteUpdate(to => !busy.value || to.query.clientId === route.query.clien
       <ClientContacts :key="`contacts-${selected.clientId}`" :client-id="selected.clientId" :can-manage="true" @busy-change="membersBusy = $event" />
       <InvitationsPanel :key="`invitations-${selected.clientId}`" :client-id="selected.clientId" @busy-change="invitationsBusy = $event" />
     </template>
-    <div v-else class="rounded-xl border bg-card px-6 py-9">
+    <div v-else class="app-panel px-6 py-9">
       <p class="text-sm font-medium">{{ t('contacts.forbidden') }}</p>
       <p class="mt-1.5 text-sm text-muted-foreground">{{ t('contacts.forbiddenHint') }}</p>
     </div>

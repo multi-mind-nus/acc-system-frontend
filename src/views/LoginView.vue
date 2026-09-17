@@ -70,7 +70,7 @@ async function submit() {
 
       <div class="flex flex-1 items-center px-6 pt-10 pb-24 sm:px-10 lg:pt-0">
         <div class="mx-auto w-full max-w-[380px]">
-          <h1 class="text-[28px] font-semibold tracking-[-0.035em]">{{ t('auth.welcome') }}</h1>
+          <h1 class="text-[32px] leading-tight font-semibold tracking-[-0.025em]">{{ t('auth.welcome') }}</h1>
           <p class="mt-3 text-sm leading-6 text-muted-foreground">{{ t('auth.hint') }}</p>
 
           <p v-if="route.query.passwordChanged" role="status" class="mt-6 rounded-lg border bg-muted p-3 text-sm">
