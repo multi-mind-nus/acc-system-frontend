@@ -2,6 +2,7 @@ import { createI18n } from 'vue-i18n'
 import { accountsMessages } from './i18n/accounts'
 import { peopleMessages } from './i18n/people'
 import { contactsMessages } from './i18n/contacts'
+import { collectionsMessages } from './i18n/collections'
 
 export type AppLocale = 'en' | 'zh-CN'
 let savedLocale: string | null = null
@@ -13,6 +14,7 @@ const messages = {
     ...accountsMessages.en,
     ...peopleMessages.en,
     ...contactsMessages.en,
+    ...collectionsMessages.en,
     app: { name: 'Client Records' },
     auth: {
       signIn: 'Sign in', signOut: 'Sign out', email: 'Email', password: 'Password',
@@ -88,6 +90,13 @@ const messages = {
         INVITATION_ALREADY_ACCEPTED: 'This invitation has already been accepted. Manage the person’s access in the member list.',
         CLIENT_DISABLED: 'This client is disabled. Enable the client before sending an invitation.',
         ACCOUNT_DISABLED: 'This account is disabled. Ask an administrator to enable it first.',
+        COLLECTION_EXISTS: 'This client already has a collection request for that period.',
+        VERSION_CONFLICT: 'Someone changed this request. Load the latest version before trying again.',
+        INVALID_TRANSITION: 'This action is not available in the current status.',
+        COLLECTION_NOT_EDITABLE: 'Only draft requests can be edited.',
+        REQUIREMENTS_REQUIRED: 'Keep at least one document requirement.',
+        INVALID_ASSIGNEE: 'Choose an active staff member assigned to this client.',
+        IDEMPOTENCY_KEY_REUSED: 'This retry key belongs to a different action. Reload and try again.',
       },
     },
     common: { language: 'Language', english: 'English', chinese: '简体中文' },
@@ -102,6 +111,7 @@ const messages = {
     ...accountsMessages['zh-CN'],
     ...peopleMessages['zh-CN'],
     ...contactsMessages['zh-CN'],
+    ...collectionsMessages['zh-CN'],
     app: { name: '客户资料' },
     auth: {
       signIn: '登录', signOut: '退出登录', email: '邮箱', password: '密码',
@@ -177,6 +187,13 @@ const messages = {
         INVITATION_ALREADY_ACCEPTED: '此邀请已被接受，请在成员列表管理该用户权限。',
         CLIENT_DISABLED: '此客户已停用，请先启用客户再邀请联系人。',
         ACCOUNT_DISABLED: '此账户已停用，请联系管理员启用。',
+        COLLECTION_EXISTS: '该客户在此期间已存在资料收集请求。',
+        VERSION_CONFLICT: '其他人已更新此请求，请加载最新版本后重试。',
+        INVALID_TRANSITION: '当前状态下不能执行此操作。',
+        COLLECTION_NOT_EDITABLE: '只有草稿请求可以编辑。',
+        REQUIREMENTS_REQUIRED: '请至少保留一项资料要求。',
+        INVALID_ASSIGNEE: '请选择已分配给该客户的在职员工。',
+        IDEMPOTENCY_KEY_REUSED: '此次重试使用了其他操作的标识，请刷新后重试。',
       },
     },
     common: { language: '语言', english: 'English', chinese: '简体中文' },

@@ -3,7 +3,7 @@ import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { Button } from '@/components/ui/button'
 
-const props = defineProps<{ message: string; code?: string; status?: number; requestId?: string }>()
+const props = defineProps<{ message: string; code?: string; status?: number; details?: unknown; requestId?: string }>()
 const { t, te } = useI18n()
 const copied = ref(false)
 const copyFailed = ref(false)

@@ -76,12 +76,21 @@ api.interceptors.response.use(undefined, async (error: AxiosError) => {
   return api.request(config)
 })
 
-export function readApiError(error: unknown) {
+export interface ReadApiError {
+  code?: string
+  status?: number
+  message: string
+  details?: unknown
+  requestId?: string
+}
+
+export function readApiError(error: unknown): ReadApiError {
   const response = axios.isAxiosError<ApiErrorBody>(error) ? error.response : undefined
   return {
     code: response?.data?.code,
     status: response?.status,
     message: response?.data?.message ?? 'The request could not be completed.',
+    details: response?.data?.details,
     requestId:
       response?.data?.requestId ??
       (response?.headers['x-request-id'] as string | undefined),

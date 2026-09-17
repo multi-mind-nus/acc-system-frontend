@@ -12,6 +12,11 @@ import InvitationAcceptView from '@/views/InvitationAcceptView.vue'
 import ForbiddenView from '@/views/ForbiddenView.vue'
 import { useAuthStore } from '@/stores/auth'
 
+const DashboardView = () => import('@/views/DashboardView.vue')
+const CollectionsView = () => import('@/views/CollectionsView.vue')
+const CollectionDetailView = () => import('@/views/CollectionDetailView.vue')
+const CollectionFormView = () => import('@/views/CollectionFormView.vue')
+
 export const router = createRouter({
   history: createWebHistory(),
   routes: [
@@ -21,8 +26,12 @@ export const router = createRouter({
       path: '/staff', component: AppShell, props: { area: 'staff' },
       meta: { requiresAuth: true, area: 'staff' },
       children: [
-        { path: '', name: 'staff-home', component: HomeView },
+        { path: '', name: 'staff-home', component: DashboardView },
         { path: 'profile', name: 'staff-profile', component: ProfileView },
+        { path: 'collections', name: 'collections', component: CollectionsView, meta: { title: 'collections.title' } },
+        { path: 'collections/new', name: 'collection-new', component: CollectionFormView, meta: { title: 'collections.new' } },
+        { path: 'collections/:id/edit', name: 'collection-edit', component: CollectionFormView, meta: { title: 'collections.edit' } },
+        { path: 'collections/:id', name: 'collection-detail', component: CollectionDetailView, meta: { title: 'collections.requestDetails' } },
         { path: 'clients', name: 'clients', component: ClientsView, meta: { title: 'accounts.clients' } },
         { path: 'clients/new', name: 'client-new', component: ClientDetailView, meta: { firmAdmin: true, title: 'accounts.newClient' } },
         { path: 'clients/:id', name: 'client-detail', component: ClientDetailView, meta: { title: 'accounts.clients' } },

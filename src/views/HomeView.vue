@@ -44,14 +44,11 @@ onMounted(loadClients)
 
 <template>
   <section class="space-y-7">
-    <header class="flex flex-wrap items-center justify-between gap-4">
+    <header>
       <div>
         <h1 class="text-[32px] leading-tight font-semibold tracking-[-0.025em]">{{ t('nav.workspace') }}</h1>
         <p class="mt-2 text-sm text-muted-foreground">{{ t('home.description') }}</p>
       </div>
-      <Button as-child variant="outline" class="h-9 gap-2 bg-card px-3">
-        <RouterLink :to="auth.homePath + '/profile'">{{ t('home.accountSettings') }}<ArrowUpRight class="size-4" /></RouterLink>
-      </Button>
     </header>
 
     <section class="app-panel overflow-hidden" aria-labelledby="organisation-title">
