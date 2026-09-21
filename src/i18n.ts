@@ -3,6 +3,7 @@ import { accountsMessages } from './i18n/accounts'
 import { peopleMessages } from './i18n/people'
 import { contactsMessages } from './i18n/contacts'
 import { collectionsMessages } from './i18n/collections'
+import { portalMessages } from './i18n/portal'
 
 export type AppLocale = 'en' | 'zh-CN'
 let savedLocale: string | null = null
@@ -15,6 +16,7 @@ const messages = {
     ...peopleMessages.en,
     ...contactsMessages.en,
     ...collectionsMessages.en,
+    ...portalMessages.en,
     app: { name: 'Client Records' },
     auth: {
       signIn: 'Sign in', signOut: 'Sign out', email: 'Email', password: 'Password',
@@ -97,6 +99,13 @@ const messages = {
         REQUIREMENTS_REQUIRED: 'Keep at least one document requirement.',
         INVALID_ASSIGNEE: 'Choose an active staff member assigned to this client.',
         IDEMPOTENCY_KEY_REUSED: 'This retry key belongs to a different action. Reload and try again.',
+        FILE_TYPE_NOT_ALLOWED: 'Upload a PDF, PNG, or JPEG file.',
+        FILE_TYPE_MISMATCH: 'The file content does not match its extension.',
+        FILE_TOO_LARGE: 'This file is larger than the 25 MB limit.',
+        FILE_EMPTY: 'This file is empty.',
+        DOCUMENTS_PROCESSING: 'Wait for all files to finish processing.',
+        REQUIRED_DOCUMENTS_MISSING: 'Upload every required document before submitting.',
+        SUBMISSION_READ_ONLY: 'This submission can no longer be changed.',
       },
     },
     common: { language: 'Language', english: 'English', chinese: '简体中文' },
@@ -112,6 +121,7 @@ const messages = {
     ...peopleMessages['zh-CN'],
     ...contactsMessages['zh-CN'],
     ...collectionsMessages['zh-CN'],
+    ...portalMessages['zh-CN'],
     app: { name: '客户资料' },
     auth: {
       signIn: '登录', signOut: '退出登录', email: '邮箱', password: '密码',
@@ -194,6 +204,13 @@ const messages = {
         REQUIREMENTS_REQUIRED: '请至少保留一项资料要求。',
         INVALID_ASSIGNEE: '请选择已分配给该客户的在职员工。',
         IDEMPOTENCY_KEY_REUSED: '此次重试使用了其他操作的标识，请刷新后重试。',
+        FILE_TYPE_NOT_ALLOWED: '请上传 PDF、PNG 或 JPEG 文件。',
+        FILE_TYPE_MISMATCH: '文件内容与扩展名不一致。',
+        FILE_TOO_LARGE: '文件超过 25 MB 上限。',
+        FILE_EMPTY: '文件内容为空。',
+        DOCUMENTS_PROCESSING: '请等待所有文件处理完成。',
+        REQUIRED_DOCUMENTS_MISSING: '请先上传全部必交资料。',
+        SUBMISSION_READ_ONLY: '本轮资料已不能修改。',
       },
     },
     common: { language: '语言', english: 'English', chinese: '简体中文' },

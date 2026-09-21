@@ -2,6 +2,7 @@ import type { AxiosAdapter } from 'axios'
 import { AxiosError, AxiosHeaders } from 'axios'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { api, readApiError, refreshSession, sessionClient, setAccessToken, setSessionListener } from './client'
+import { portalApi } from './portal'
 
 const apiAdapter = api.defaults.adapter
 const sessionAdapter = sessionClient.defaults.adapter
@@ -40,6 +41,22 @@ function unauthorized(config: Parameters<AxiosAdapter>[0]) {
 }
 
 describe('API boundary', () => {
+  it('sends smart-upload metadata and preserves the invalid classification', async () => {
+    let requestBody: Record<string, unknown> = {}
+    api.defaults.adapter = (config) => {
+      requestBody = JSON.parse(config.data as string)
+      return response(config, {
+        provider: 'FAKE', items: [{ index: 0, category: 'INVALID', requirement_id: null, confidence: 0.99 }],
+      })
+    }
+    const file = new File(['notes'], 'notes.txt', { type: 'text/plain' })
+
+    const result = await portalApi.classify('request-1', [file])
+
+    expect(requestBody).toEqual({ files: [{ name: 'notes.txt', content_type: 'text/plain', size_bytes: 5 }] })
+    expect(result.items[0]).toEqual({ index: 0, category: 'INVALID', requirementId: null, confidence: 0.99 })
+  })
+
   it('converts request keys to snake_case and response keys to camelCase', async () => {
     let requestBody: Record<string, unknown> = {}
     api.defaults.adapter = (config) => {

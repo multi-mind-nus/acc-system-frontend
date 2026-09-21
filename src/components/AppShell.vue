@@ -15,6 +15,7 @@ const profilePath = computed(() => `/${props.area}/profile`)
 const navigation = computed(() => [
   { path: homePath.value, title: 'nav.workspace', icon: Building2 },
   ...(auth.isStaff ? [{ path: '/staff/collections', title: 'collections.title', icon: ClipboardList }] : []),
+  ...(!auth.isStaff ? [{ path: '/client/collections', title: 'portal.title', icon: ClipboardList }] : []),
   ...(auth.isStaff ? [{ path: '/staff/clients', title: 'accounts.clients', icon: BriefcaseBusiness }] : []),
   ...(auth.user?.firmRole === 'FIRM_ADMIN' ? [{ path: '/staff/admin/users', title: 'accounts.employees', icon: UsersRound }] : []),
   ...(!auth.isStaff && auth.user?.clientMemberships.some(member => member.role === 'CLIENT_ADMIN') ? [{ path: '/client/contacts', title: 'accounts.contacts', icon: ContactRound }] : []),

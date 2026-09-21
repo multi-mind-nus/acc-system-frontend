@@ -3,6 +3,8 @@ import tailwindcss from '@tailwindcss/vite'
 import vue from '@vitejs/plugin-vue'
 import { defineConfig } from 'vite'
 
+const apiTarget = process.env.VITE_API_PROXY_TARGET ?? 'http://localhost'
+
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [vue(), tailwindcss()],
@@ -11,10 +13,10 @@ export default defineConfig({
     strictPort: true,
     proxy: {
       '/api': {
-        target: 'http://localhost',
+        target: apiTarget,
         changeOrigin: true,
         configure(proxy) {
-          proxy.on('proxyReq', request => request.setHeader('origin', 'http://localhost'))
+          proxy.on('proxyReq', request => request.setHeader('origin', new URL(apiTarget).origin))
         },
       },
     },

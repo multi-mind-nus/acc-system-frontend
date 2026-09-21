@@ -16,6 +16,8 @@ const DashboardView = () => import('@/views/DashboardView.vue')
 const CollectionsView = () => import('@/views/CollectionsView.vue')
 const CollectionDetailView = () => import('@/views/CollectionDetailView.vue')
 const CollectionFormView = () => import('@/views/CollectionFormView.vue')
+const PortalCollectionsView = () => import('@/views/PortalCollectionsView.vue')
+const PortalCollectionDetailView = () => import('@/views/PortalCollectionDetailView.vue')
 
 export const router = createRouter({
   history: createWebHistory(),
@@ -45,12 +47,17 @@ export const router = createRouter({
       meta: { requiresAuth: true, area: 'client' },
       children: [
         { path: '', name: 'client-home', component: HomeView },
+        { path: 'collections', name: 'portal-collections', component: PortalCollectionsView, meta: { title: 'portal.title' } },
+        { path: 'collections/:id', name: 'portal-collection-detail', component: PortalCollectionDetailView, meta: { title: 'portal.request' } },
         { path: 'profile', name: 'client-profile', component: ProfileView },
         { path: 'contacts', name: 'client-contacts', component: ContactsView, meta: { clientAdmin: true, title: 'accounts.contacts' } },
         { path: 'forbidden', name: 'client-forbidden', component: ForbiddenView, meta: { title: 'accounts.forbidden' } },
         { path: ':pathMatch(.*)*', name: 'client-not-found', component: NotFoundView },
       ],
     },
+    { path: '/portal', redirect: '/client' },
+    { path: '/portal/collections', redirect: { name: 'portal-collections' } },
+    { path: '/portal/collections/:id', redirect: to => ({ name: 'portal-collection-detail', params: { id: to.params.id } }) },
     { path: '/', redirect: '/staff' },
     { path: '/:pathMatch(.*)*', name: 'not-found', component: NotFoundView },
   ],

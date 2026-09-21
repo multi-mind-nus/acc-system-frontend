@@ -18,6 +18,8 @@ vi.mock('@/views/StaffView.vue', () => ({ default: {} }))
 vi.mock('@/views/ContactsView.vue', () => ({ default: {} }))
 vi.mock('@/views/InvitationAcceptView.vue', () => ({ default: {} }))
 vi.mock('@/views/ForbiddenView.vue', () => ({ default: {} }))
+vi.mock('@/views/PortalCollectionsView.vue', () => ({ default: {} }))
+vi.mock('@/views/PortalCollectionDetailView.vue', () => ({ default: {} }))
 
 import { router } from './router'
 
@@ -49,6 +51,9 @@ it('enforces staff/client boundaries and preserves guest return paths with the r
   expect(router.currentRoute.value.path).toBe('/client')
   await router.push('/login')
   expect(router.currentRoute.value.path).toBe('/client')
+  await router.push('/portal/collections/request-1')
+  expect(router.currentRoute.value.name).toBe('portal-collection-detail')
+  expect(router.currentRoute.value.path).toBe('/client/collections/request-1')
 
   auth.clearSession()
   await router.push('/client/missing')

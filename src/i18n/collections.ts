@@ -22,7 +22,7 @@ export const collectionsMessages = {
     copied: 'A new draft was created for {period}.', created: 'Draft created.', eventBy: '{actor} · {time}',
     types: { BANK_STATEMENT: 'Bank statement', SALES_INVOICE: 'Sales invoices', PURCHASE_INVOICE: 'Purchase invoices', RECEIPT: 'Receipts', PAYMENT_PLATFORM_REPORT: 'Payment platform report', LOAN_STATEMENT: 'Loan statement', OTHER: 'Other supporting documents' },
     status: { DRAFT: 'Draft', OPEN: 'Open', IN_REVIEW: 'In review', CHANGES_REQUESTED: 'Changes requested', READY_FOR_BOOKKEEPING: 'Ready for bookkeeping', CLOSED: 'Closed', CANCELLED: 'Cancelled', PENDING: 'Pending', RECEIVED: 'Received', NEEDS_ACTION: 'Needs action', SATISFIED: 'Satisfied', WAIVED: 'Waived' },
-    events: { CREATED: 'Request created', UPDATED: 'Request updated', REQUIREMENT_ADDED: 'Requirement added', REQUIREMENT_UPDATED: 'Requirement updated', REQUIREMENT_REMOVED: 'Requirement removed', PUBLISHED: 'Request published', CANCELLED: 'Request cancelled', COPIED: 'Copied from a previous request' },
+    events: { CREATED: 'Request created', UPDATED: 'Request updated', REQUIREMENT_ADDED: 'Requirement added', REQUIREMENT_UPDATED: 'Requirement updated', REQUIREMENT_REMOVED: 'Requirement removed', PUBLISHED: 'Request published', CANCELLED: 'Request cancelled', COPIED: 'Copied from a previous request', SUBMITTED: 'Client submitted round {round}' },
   } },
   'zh-CN': { collections: {
     title: '资料收集', description: '创建并跟踪每月客户资料清单。', new: '新建请求',
@@ -47,6 +47,6 @@ export const collectionsMessages = {
     copied: '已创建 {period} 的新草稿。', created: '草稿已创建。', eventBy: '{actor} · {time}',
     types: { BANK_STATEMENT: '银行对账单', SALES_INVOICE: '销售发票', PURCHASE_INVOICE: '采购发票', RECEIPT: '收据', PAYMENT_PLATFORM_REPORT: '收款平台报表', LOAN_STATEMENT: '贷款对账单', OTHER: '其他支持文件' },
     status: { DRAFT: '草稿', OPEN: '待客户提交', IN_REVIEW: '审核中', CHANGES_REQUESTED: '待补交', READY_FOR_BOOKKEEPING: '可开始记账', CLOSED: '已关闭', CANCELLED: '已取消', PENDING: '待提交', RECEIVED: '已收到', NEEDS_ACTION: '需处理', SATISFIED: '已满足', WAIVED: '已豁免' },
-    events: { CREATED: '创建请求', UPDATED: '更新请求', REQUIREMENT_ADDED: '添加资料要求', REQUIREMENT_UPDATED: '更新资料要求', REQUIREMENT_REMOVED: '移除资料要求', PUBLISHED: '发布请求', CANCELLED: '取消请求', COPIED: '从上一请求复制' },
+    events: { CREATED: '创建请求', UPDATED: '更新请求', REQUIREMENT_ADDED: '添加资料要求', REQUIREMENT_UPDATED: '更新资料要求', REQUIREMENT_REMOVED: '移除资料要求', PUBLISHED: '发布请求', CANCELLED: '取消请求', COPIED: '从上一请求复制', SUBMITTED: '客户提交第 {round} 轮资料' },
   } },
 }

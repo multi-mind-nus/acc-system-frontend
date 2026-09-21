@@ -14,8 +14,8 @@ it.each<{
 }>([
   { role: 'FIRM_ADMIN', memberships: [], expected: ['/staff/clients', '/staff/admin/users'], hidden: ['/client/contacts'] },
   { role: 'ACCOUNTANT', memberships: [], expected: ['/staff/clients'], hidden: ['/staff/admin/users', '/client/contacts'] },
-  { role: null, memberships: [{ clientId: 'client', clientName: 'Client', role: 'CLIENT_ADMIN' }], expected: ['/client/contacts'], hidden: ['/staff/clients', '/staff/admin/users'] },
-  { role: null, memberships: [{ clientId: 'client', clientName: 'Client', role: 'CLIENT_SUBMITTER' }], expected: [], hidden: ['/client/contacts', '/staff/clients', '/staff/admin/users'] },
+  { role: null, memberships: [{ clientId: 'client', clientName: 'Client', role: 'CLIENT_ADMIN' }], expected: ['/client/collections', '/client/contacts'], hidden: ['/staff/clients', '/staff/admin/users'] },
+  { role: null, memberships: [{ clientId: 'client', clientName: 'Client', role: 'CLIENT_SUBMITTER' }], expected: ['/client/collections'], hidden: ['/client/contacts', '/staff/clients', '/staff/admin/users'] },
 ])('renders only permitted navigation for $role / $memberships', async ({ role, memberships, expected, hidden }) => {
   const area = role ? 'staff' : 'client'
   const pinia = createPinia()
@@ -35,6 +35,7 @@ it.each<{
       ...accountsMessages.en,
       app: { name: 'Client Records' }, auth: { signOut: 'Sign out' }, home: { firm: 'Organisation' },
       nav: { primary: 'Main navigation', workspace: 'Workspace', profile: 'Account' },
+      portal: { title: 'Documents' },
     } },
   }))
   const html = await renderToString(app)

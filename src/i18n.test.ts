@@ -56,3 +56,10 @@ it('renders API errors in the selected language with diagnostic code and request
   expect(html).toContain('req-123')
   expect(html).not.toContain('Email or password is incorrect')
 })
+
+it('translates submitted activity with its round number', async () => {
+  const { i18n, setLocale } = await import('./i18n')
+  expect(i18n.global.t('collections.events.SUBMITTED', { round: 2 })).toBe('Client submitted round 2')
+  setLocale('zh-CN')
+  expect(i18n.global.t('collections.events.SUBMITTED', { round: 2 })).toBe('客户提交第 2 轮资料')
+})

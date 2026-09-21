@@ -2,7 +2,7 @@
 import { ArrowUpRight, CalendarDays, Check, Copy, Pencil, Send, UserRound, XCircle } from '@lucide/vue'
 import { computed, reactive, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { collectionsApi, type CollectionDetail } from '@/api/collections'
+import { collectionsApi, type CollectionDetail, type WorkflowEvent } from '@/api/collections'
 import { readApiError } from '@/api/client'
 import ConfirmDialog from '@/components/ConfirmDialog.vue'
 import ErrorNotice from '@/components/ErrorNotice.vue'
@@ -69,9 +69,9 @@ async function run(action: 'publish' | 'cancel') {
   finally { busy.value = '' }
 }
 
-function eventName(type: string) {
-  const key = `collections.events.${type}`
-  return te(key) ? t(key) : type
+function eventName(event: WorkflowEvent) {
+  const key = `collections.events.${event.eventType}`
+  return te(key) ? t(key, { round: event.payload.roundNo ?? event.payload.round_no ?? '' }) : event.eventType
 }
 
 watch(() => props.requestId, load, { immediate: true })
@@ -134,7 +134,7 @@ watch(() => props.requestId, load, { immediate: true })
                 <StepperIndicator class="size-7 border border-border bg-card"><Check class="size-3.5" /></StepperIndicator>
               </StepperTrigger>
               <div class="min-w-0 pt-1">
-                <StepperTitle class="text-sm font-medium whitespace-normal">{{ eventName(event.eventType) }}</StepperTitle>
+                <StepperTitle class="text-sm font-medium whitespace-normal">{{ eventName(event) }}</StepperTitle>
                 <StepperDescription class="mt-1 leading-5">{{ t('collections.eventBy', { actor: event.actorName, time: formatDate(event.createdAt, true) }) }}</StepperDescription>
                 <p v-if="event.eventType === 'CANCELLED' && event.payload.reason" class="mt-2 text-sm leading-6">{{ event.payload.reason }}</p>
               </div>
