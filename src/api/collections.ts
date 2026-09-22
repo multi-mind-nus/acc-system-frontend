@@ -31,6 +31,7 @@ export interface CollectionSummary {
   assigneeId: string
   assigneeName: string
   requirementCount: number
+  updatedAt: string
 }
 
 export interface WorkflowEvent {
@@ -65,7 +66,7 @@ export interface CollectionListQuery {
   assigneeId?: string
   dueFrom?: string
   dueTo?: string
-  sort?: 'due_at' | 'period' | 'created_at'
+  sort?: 'due_at' | 'period' | 'created_at' | 'updated_at'
   order?: 'asc' | 'desc'
 }
 

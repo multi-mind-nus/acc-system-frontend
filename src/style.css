@@ -205,7 +205,20 @@
 @layer base {
   * {
     @apply border-border outline-ring/50;
+    scrollbar-color: color-mix(in srgb, var(--foreground) 28%, transparent) transparent;
+    scrollbar-width: thin;
     }
+  *::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  *::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  *::-webkit-scrollbar-thumb {
+    background: color-mix(in srgb, var(--foreground) 28%, transparent);
+    border-radius: 999px;
+  }
   body {
     @apply bg-background text-foreground;
     @apply font-sans;

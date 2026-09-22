@@ -3,6 +3,7 @@ import { AxiosError, AxiosHeaders } from 'axios'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { api, readApiError, refreshSession, sessionClient, setAccessToken, setSessionListener } from './client'
 import { portalApi } from './portal'
+import { reviewApi } from './review'
 
 const apiAdapter = api.defaults.adapter
 const sessionAdapter = sessionClient.defaults.adapter
@@ -41,6 +42,34 @@ function unauthorized(config: Parameters<AxiosAdapter>[0]) {
 }
 
 describe('API boundary', () => {
+  it('sends review decisions and idempotent transitions with converted field names', async () => {
+    const requests: Array<{ url?: string; body: unknown; key?: string }> = []
+    api.defaults.adapter = (config) => {
+      requests.push({
+        url: config.url,
+        body: config.data ? JSON.parse(config.data as string) : undefined,
+        key: config.headers.get('Idempotency-Key') as string | undefined,
+      })
+      return response(config, {})
+    }
+
+    await reviewApi.review('requirement-1', {
+      version: 2, submissionId: 'submission-1', decision: 'SATISFY',
+    })
+    await reviewApi.approve('request-1', 3, 'approve-key')
+
+    expect(requests).toEqual([
+      {
+        url: '/requirements/requirement-1/review', key: undefined,
+        body: { version: 2, submission_id: 'submission-1', decision: 'SATISFY' },
+      },
+      {
+        url: '/collection-requests/request-1/approve', key: 'approve-key',
+        body: { version: 3 },
+      },
+    ])
+  })
+
   it('sends smart-upload metadata and preserves the invalid classification', async () => {
     let requestBody: Record<string, unknown> = {}
     api.defaults.adapter = (config) => {

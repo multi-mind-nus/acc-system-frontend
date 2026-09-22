@@ -13,6 +13,8 @@ export interface PortalDocument {
   status: DocumentStatus
   failureCode: string | null
   duplicate: boolean
+  editable: boolean
+  countsForSubmission: boolean
   createdAt: string
 }
 
@@ -31,6 +33,7 @@ export interface PortalSubmission {
   id: string
   roundNo: number
   status: 'DRAFT' | 'SUBMITTED'
+  note: string | null
   submittedAt: string | null
   createdAt: string
 }
@@ -45,6 +48,15 @@ export interface PortalCollectionSummary {
   assigneeName: string
   requiredCount: number
   readyCount: number
+  updatedAt: string
+}
+
+export interface PortalCollectionListQuery {
+  clientId?: string
+  period?: string
+  status?: CollectionStatus
+  sort?: 'due_at' | 'period' | 'updated_at'
+  order?: 'asc' | 'desc'
 }
 
 export interface PortalCollectionDetail extends PortalCollectionSummary {
@@ -64,7 +76,7 @@ export interface ClassificationResult {
 }
 
 export const portalApi = {
-  list: () => api.get<{ items: PortalCollectionSummary[]; total: number }>('/portal/collection-requests').then(({ data }) => data),
+  list: (params: PortalCollectionListQuery = {}) => api.get<{ items: PortalCollectionSummary[]; total: number }>('/portal/collection-requests', { params }).then(({ data }) => data),
   get: (id: string) => api.get<PortalCollectionDetail>(`/portal/collection-requests/${id}`).then(({ data }) => data),
   classify: (id: string, files: File[]) => api.post<ClassificationResult>(`/portal/collection-requests/${id}/classify`, {
     files: files.map(file => ({ name: file.name, contentType: file.type || 'application/octet-stream', sizeBytes: file.size })),
@@ -77,6 +89,6 @@ export const portalApi = {
   },
   document: (linkId: string) => api.get<PortalDocument>(`/portal/document-links/${linkId}`).then(({ data }) => data),
   exclude: (linkId: string) => api.delete<PortalDocument>(`/portal/document-links/${linkId}`).then(({ data }) => data),
-  submit: (id: string) => api.post<PortalCollectionDetail>(`/portal/collection-requests/${id}/submit`).then(({ data }) => data),
+  submit: (id: string, note?: string) => api.post<PortalCollectionDetail>(`/portal/collection-requests/${id}/submit`, { note: note?.trim() || null }).then(({ data }) => data),
   download: (linkId: string) => api.get<Blob>(`/portal/document-links/${linkId}/download`, { responseType: 'blob' }).then(({ data }) => data),
 }

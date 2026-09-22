@@ -11,7 +11,7 @@ import { RangeCalendar } from '@/components/ui/range-calendar'
 
 const props = defineProps<{ start: string, end: string, label: string, placeholder: string }>()
 const emit = defineEmits<{ 'update:start': [value: string], 'update:end': [value: string] }>()
-const { locale } = useI18n()
+const { locale, t } = useI18n()
 const open = ref(false)
 const showTwoMonths = useMediaQuery('(min-width: 640px)')
 
@@ -33,6 +33,12 @@ const formatted = computed(() => {
   if (!selected.value.start) return ''
   return selected.value.end ? `${format(selected.value.start)} – ${format(selected.value.end)}` : `${format(selected.value.start)} – …`
 })
+
+function clear() {
+  emit('update:start', '')
+  emit('update:end', '')
+  open.value = false
+}
 </script>
 
 <template>
@@ -45,6 +51,9 @@ const formatted = computed(() => {
     </PopoverTrigger>
     <PopoverContent align="start" class="w-auto max-w-[calc(100vw-2rem)] overflow-auto p-0">
       <RangeCalendar v-model="selected" :placeholder="calendarPlaceholder" :locale="locale" :calendar-label="label" :number-of-months="showTwoMonths ? 2 : 1" initial-focus />
+      <div class="border-t p-2">
+        <Button type="button" variant="ghost" size="sm" class="w-full" :disabled="!start && !end" @click="clear">{{ t('common.clear') }}</Button>
+      </div>
     </PopoverContent>
   </Popover>
 </template>

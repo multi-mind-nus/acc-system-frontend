@@ -8,6 +8,7 @@ defineProps<{
   title: string
   description?: string
   busy?: boolean
+  confirmDisabled?: boolean
   confirmLabel?: string
   cancelLabel?: string
 }>()
@@ -25,7 +26,7 @@ const { t } = useI18n()
         <slot />
         <div class="mt-6 flex justify-end gap-2">
           <AlertDialogCancel as-child><Button variant="outline" :disabled="busy">{{ cancelLabel || t('accounts.cancel') }}</Button></AlertDialogCancel>
-          <Button :disabled="busy" @click="emit('confirm')">{{ busy ? t('accounts.saving') : confirmLabel || t('accounts.confirm') }}</Button>
+          <Button :disabled="busy || confirmDisabled" @click="emit('confirm')">{{ busy ? t('accounts.saving') : confirmLabel || t('accounts.confirm') }}</Button>
         </div>
       </AlertDialogContent>
     </AlertDialogPortal>

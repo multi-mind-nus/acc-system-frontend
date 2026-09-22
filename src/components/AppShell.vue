@@ -63,7 +63,7 @@ const initials = computed(() => auth.user?.name.trim().split(/\s+/).map(part => 
 
     <div class="lg:pl-64">
       <main class="min-h-screen px-5 pt-8 pb-28 sm:px-8 lg:px-10 lg:py-12">
-        <div class="mx-auto max-w-[1280px]">
+        <div class="mx-auto max-w-[1440px]">
           <RouterView />
         </div>
       </main>

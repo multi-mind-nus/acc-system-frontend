@@ -70,7 +70,7 @@ watch(() => [route.query.page, route.query.search, route.query.status], load, { 
           <SelectTrigger size="lg" class="w-40 bg-card" :aria-label="t('accounts.statusLabel')"><SelectValue /></SelectTrigger>
           <SelectContent position="popper"><SelectItem value="all">{{ t('accounts.allStatuses') }}</SelectItem><SelectItem value="ACTIVE">{{ t('accounts.status.ACTIVE') }}</SelectItem><SelectItem value="DISABLED">{{ t('accounts.status.DISABLED') }}</SelectItem></SelectContent>
         </Select>
-        <Button type="submit" variant="outline" class="h-10">{{ t('accounts.search') }}</Button>
+        <Button type="submit" variant="outline" size="icon" class="size-10" :aria-label="t('accounts.search')" :title="t('accounts.search')"><Search /></Button>
         <p class="ml-auto hidden text-xs text-muted-foreground md:block">{{ t('accounts.recordCount', { count: result.total }) }}</p>
       </form>
       <div v-if="error" class="space-y-3 p-5"><ErrorNotice v-bind="error" /><Button variant="outline" @click="load">{{ t('accounts.retry') }}</Button></div>

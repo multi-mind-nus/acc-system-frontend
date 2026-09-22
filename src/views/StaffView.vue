@@ -119,7 +119,7 @@ onBeforeUnmount(() => { request++ })
             <SelectItem value="DISABLED">{{ t('accounts.status.DISABLED') }}</SelectItem>
           </SelectContent>
         </Select>
-        <Button type="submit" variant="outline" class="h-10" :disabled="busy">{{ t('people.search') }}</Button>
+        <Button type="submit" variant="outline" size="icon" class="size-10" :aria-label="t('people.search')" :title="t('people.search')" :disabled="busy"><Search /></Button>
         <Button type="button" variant="ghost" size="icon" class="h-10 w-10" :disabled="loading || busy" :aria-label="t('people.refresh')" @click="load">
           <RefreshCw class="size-4" />
         </Button>

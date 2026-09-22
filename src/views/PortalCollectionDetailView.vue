@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { AlertCircle, ArrowLeft, CheckCircle2, Download, FileText, GripVertical, RotateCw, Sparkles, Trash2, Upload, X } from '@lucide/vue'
+import { AlertCircle, ArrowLeft, CheckCircle2, Download, FileText, GripVertical, MessageSquareText, RotateCw, Sparkles, Trash2, Upload, X } from '@lucide/vue'
 import { DialogContent, DialogDescription, DialogOverlay, DialogPortal, DialogRoot, DialogTitle } from 'reka-ui'
 import { computed, onBeforeUnmount, onMounted, reactive, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
@@ -7,11 +7,13 @@ import { useRoute } from 'vue-router'
 import { readApiError } from '@/api/client'
 import { portalApi, type PortalCollectionDetail, type PortalDocument, type PortalRequirement } from '@/api/portal'
 import ConfirmDialog from '@/components/ConfirmDialog.vue'
+import DocumentPreviewDialog from '@/components/DocumentPreviewDialog.vue'
 import ErrorNotice from '@/components/ErrorNotice.vue'
 import FileTypeIcon from '@/components/FileTypeIcon.vue'
 import StatusBadge from '@/components/StatusBadge.vue'
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion'
 import { Button } from '@/components/ui/button'
+import { Label } from '@/components/ui/label'
 import { Progress } from '@/components/ui/progress'
 
 interface UploadState { progress: number; busy: boolean; file?: File; error?: ReturnType<typeof readApiError> }
@@ -35,6 +37,9 @@ const error = ref<ReturnType<typeof readApiError> | null>(null)
 const actionError = ref<ReturnType<typeof readApiError> | null>(null)
 const validationMessage = ref('')
 const confirmSubmit = ref(false)
+const submissionNote = ref('')
+const previewOpen = ref(false)
+const previewDocument = ref<PortalDocument | null>(null)
 const uploads = reactive<Record<string, UploadState>>({})
 const dragging = ref<string | null>(null)
 const smartDragging = ref(false)
@@ -49,17 +54,26 @@ const draggedCandidateId = ref<string | null>(null)
 const timers = new Set<ReturnType<typeof setTimeout>>()
 let smartGeneration = 0
 
-const editable = computed(() => detail.value && ['OPEN', 'CHANGES_REQUESTED'].includes(detail.value.status) && detail.value.submission?.status !== 'SUBMITTED')
+const editable = computed(() => detail.value && ['OPEN', 'CHANGES_REQUESTED'].includes(detail.value.status))
+const requirementEditable = (item: PortalRequirement) => detail.value?.status === 'OPEN'
+  || (detail.value?.status === 'CHANGES_REQUESTED' && item.status === 'NEEDS_ACTION')
+const requirementHasIssue = (item: PortalRequirement) => item.status === 'NEEDS_ACTION'
+  || (item.status === 'RECEIVED' && Boolean(item.clientMessage))
+const editableRequirements = computed(() => detail.value?.requirements.filter(requirementEditable) ?? [])
 const required = computed(() => detail.value?.requirements.filter(item => item.required) ?? [])
-const readyRequired = computed(() => required.value.filter(item => item.documents.some(document => document.status === 'AVAILABLE')).length)
+const requirementReady = (item: PortalRequirement) => ['SATISFIED', 'WAIVED'].includes(item.status)
+  || item.documents.some(document => document.status === 'AVAILABLE' && (
+    !editable.value || document.countsForSubmission
+  ))
+const readyRequired = computed(() => required.value.filter(requirementReady).length)
 const progress = computed(() => required.value.length ? Math.round(readyRequired.value / required.value.length * 100) : 100)
 const processing = computed(() => detail.value?.requirements.some(item => item.documents.some(document => document.status === 'QUARANTINED')) ?? false)
-const missing = computed(() => required.value.filter(item => !item.documents.some(document => document.status === 'AVAILABLE')))
+const missing = computed(() => required.value.filter(item => !requirementReady(item)))
 const smartCategories = computed(() => [
-  ...(detail.value?.requirements.map(requirement => ({
+  ...editableRequirements.value.map(requirement => ({
     target: requirement.id,
     label: requirement.type === 'OTHER' ? t('collections.types.OTHER') : requirement.title,
-  })) ?? []),
+  })),
   { target: INVALID_TARGET, label: t('portal.invalidClassification') },
 ])
 const smartGroups = computed(() => smartCategories.value.map(category => ({
@@ -124,6 +138,7 @@ async function load() {
 }
 
 async function upload(requirement: PortalRequirement, file: File) {
+  if (!requirementEditable(requirement)) return false
   const state: UploadState = uploads[requirement.id] = { progress: 0, busy: true, file }
   actionError.value = null
   validationMessage.value = ''
@@ -132,9 +147,7 @@ async function upload(requirement: PortalRequirement, file: File) {
       String(route.params.id), requirement.type === 'OTHER' ? null : requirement.id, file,
       event => { state.progress = event.total ? Math.round(event.loaded / event.total * 100) : 0 },
     )
-    const existing = requirement.documents.findIndex(item => item.linkId === result.document.linkId)
-    if (existing >= 0) requirement.documents[existing] = result.document
-    else requirement.documents.push(result.document)
+    detail.value = await portalApi.get(String(route.params.id))
     poll(result.document)
     return true
   } catch (caught) { state.error = readApiError(caught) }
@@ -296,7 +309,10 @@ function dropSmartFiles(event: DragEvent) {
 
 async function exclude(document: PortalDocument) {
   actionError.value = null
-  try { replaceDocument(await portalApi.exclude(document.linkId)) }
+  try {
+    await portalApi.exclude(document.linkId)
+    detail.value = await portalApi.get(String(route.params.id))
+  }
   catch (caught) { actionError.value = readApiError(caught) }
 }
 
@@ -312,6 +328,12 @@ async function download(document: PortalDocument) {
   } catch (caught) { actionError.value = readApiError(caught) }
 }
 
+function preview(document: PortalDocument) {
+  if (document.status !== 'AVAILABLE') return
+  previewDocument.value = document
+  previewOpen.value = true
+}
+
 function askSubmit() {
   validationMessage.value = processing.value
     ? t('portal.processingHint')
@@ -323,8 +345,9 @@ async function submit() {
   busy.value = true
   actionError.value = null
   try {
-    detail.value = await portalApi.submit(String(route.params.id))
+    detail.value = await portalApi.submit(String(route.params.id), submissionNote.value)
     confirmSubmit.value = false
+    submissionNote.value = ''
   } catch (caught) { actionError.value = readApiError(caught) }
   finally { busy.value = false }
 }
@@ -358,7 +381,7 @@ onBeforeUnmount(() => timers.forEach(clearTimeout))
 
       <section class="app-panel overflow-hidden" aria-labelledby="requirements-title">
         <header class="border-b px-5 py-5 sm:px-7"><h2 id="requirements-title" class="text-base font-semibold">{{ t('portal.requirements') }}</h2><p class="mt-1.5 text-sm text-muted-foreground">{{ t('portal.requirementsHint') }}</p></header>
-        <div v-if="editable" class="border-b px-5 py-5 sm:px-7">
+        <div v-if="editableRequirements.length" class="border-b px-5 py-5 sm:px-7">
           <label
             class="flex min-h-24 cursor-pointer items-center gap-4 rounded-2xl border border-dashed px-5 py-4 transition-colors focus-within:ring-3 focus-within:ring-ring/50"
             :class="smartDragging ? 'border-primary bg-accent/60' : 'hover:bg-muted/40'"
@@ -381,25 +404,34 @@ onBeforeUnmount(() => timers.forEach(clearTimeout))
           <AccordionItem v-for="requirement in detail.requirements" :key="requirement.id" :value="requirement.id" class="px-5 sm:px-7">
             <AccordionTrigger class="py-5 hover:no-underline">
               <span class="flex min-w-0 items-start gap-3 pr-3">
-                <span class="mt-0.5 grid size-8 shrink-0 place-items-center rounded-full" :class="requirement.documents.some(document => document.status === 'AVAILABLE') ? 'bg-accent text-primary' : 'bg-muted text-muted-foreground'"><CheckCircle2 v-if="requirement.documents.some(document => document.status === 'AVAILABLE')" class="size-4" /><FileText v-else class="size-4" /></span>
+                <span class="mt-0.5 grid size-8 shrink-0 place-items-center rounded-full" :class="requirementHasIssue(requirement) ? 'bg-amber-500/15 text-amber-700 dark:text-amber-300' : ['SATISFIED', 'WAIVED'].includes(requirement.status) ? 'bg-accent text-primary' : 'bg-muted text-muted-foreground'">
+                  <AlertCircle v-if="requirementHasIssue(requirement)" class="size-4" />
+                  <CheckCircle2 v-else-if="['SATISFIED', 'WAIVED'].includes(requirement.status)" class="size-4" />
+                  <FileText v-else class="size-4" />
+                </span>
                 <span class="min-w-0"><span class="block font-medium">{{ requirement.title }}</span><span class="mt-1 block text-xs font-normal text-muted-foreground">{{ requirement.required ? t('portal.required') : t('portal.optional') }} · {{ t(`collections.types.${requirement.type}`) }}</span></span>
               </span>
             </AccordionTrigger>
             <AccordionContent class="pb-6 pl-11">
               <p v-if="criteriaText(requirement)" class="mb-4 text-sm leading-6 text-muted-foreground">{{ criteriaText(requirement) }}</p>
-              <div v-if="requirement.clientMessage" class="mb-4 rounded-xl border border-amber-700/20 bg-amber-500/10 px-4 py-3 text-sm"><p class="font-medium">{{ t('portal.reviewNote') }}</p><p class="mt-1 text-muted-foreground">{{ requirement.clientMessage }}</p></div>
+              <div v-if="requirement.clientMessage" class="mb-4 flex items-start gap-3 rounded-2xl border border-amber-600/25 bg-amber-500/[0.08] p-4">
+                <span class="grid size-9 shrink-0 place-items-center rounded-full bg-amber-500/15 text-amber-700 dark:text-amber-300"><MessageSquareText class="size-4" /></span>
+                <div class="min-w-0"><p class="text-sm font-semibold text-foreground">{{ t('portal.reviewNote') }}</p><p class="mt-1.5 whitespace-pre-wrap text-sm leading-6 text-foreground/80">{{ requirement.clientMessage }}</p></div>
+              </div>
 
               <div v-if="requirement.documents.length" class="mb-4 space-y-2">
                 <div v-for="document in requirement.documents" :key="document.linkId" class="flex flex-wrap items-center gap-3 rounded-xl border bg-background p-3 shadow-sm">
-                  <FileTypeIcon :name="document.name" :content-type="document.contentType" />
-                  <div class="min-w-32 flex-1"><p class="truncate text-sm font-medium" :title="document.name">{{ document.name }}</p><p class="mt-0.5 text-xs text-muted-foreground">{{ formatSize(document.sizeBytes) }}<span v-if="document.duplicate"> · {{ t('portal.reused') }}</span><span v-if="document.status === 'FAILED'"> · {{ failureText(document.failureCode) }}</span></p></div>
+                  <button type="button" class="flex min-w-32 flex-1 items-center gap-3 text-left disabled:cursor-default" :disabled="document.status !== 'AVAILABLE'" @click="preview(document)">
+                    <FileTypeIcon :name="document.name" :content-type="document.contentType" />
+                    <span class="min-w-0 flex-1"><span class="block truncate text-sm font-medium enabled:hover:underline" :title="document.name">{{ document.name }}</span><span class="mt-0.5 block text-xs text-muted-foreground">{{ formatSize(document.sizeBytes) }}<span v-if="document.duplicate"> · {{ t('portal.reused') }}</span><span v-if="document.status === 'FAILED'"> · {{ failureText(document.failureCode) }}</span></span></span>
+                  </button>
                   <StatusBadge :status="document.status" translation-prefix="portal.documentStatus" />
                   <Button v-if="document.status === 'AVAILABLE'" variant="ghost" size="icon-sm" :aria-label="t('portal.download')" @click="download(document)"><Download class="size-4" /></Button>
-                  <Button v-if="editable && document.status !== 'EXCLUDED'" variant="ghost" size="icon-sm" :aria-label="t('portal.exclude')" @click="exclude(document)"><Trash2 class="size-4" /></Button>
+                  <Button v-if="document.editable && document.status !== 'EXCLUDED'" variant="ghost" size="icon-sm" :aria-label="t('portal.exclude')" @click="exclude(document)"><Trash2 class="size-4" /></Button>
                 </div>
               </div>
 
-              <div v-if="editable" class="space-y-3">
+              <div v-if="requirementEditable(requirement)" class="space-y-3">
                 <label
                   class="flex min-h-14 cursor-pointer items-center justify-center gap-2 rounded-xl border border-dashed px-4 text-center text-sm font-medium transition-colors focus-within:ring-3 focus-within:ring-ring/50"
                   :class="dragging === requirement.id ? 'border-primary bg-accent/60' : 'hover:bg-muted/40'"
@@ -419,10 +451,18 @@ onBeforeUnmount(() => timers.forEach(clearTimeout))
         </Accordion>
       </section>
 
-      <section class="app-panel flex flex-wrap items-center gap-4 px-5 py-4">
-        <div class="min-w-0 flex-1"><p class="text-sm font-medium">{{ editable ? t('portal.submitTitle') : t('portal.submittedTitle') }}</p><p class="mt-1 text-xs text-muted-foreground">{{ editable ? t('portal.submitHint') : t('portal.submittedHint') }}</p><p v-if="validationMessage" class="mt-2 text-xs font-medium text-amber-700 dark:text-amber-300">{{ validationMessage }}</p></div>
-        <Button v-if="editable" class="h-10" @click="askSubmit">{{ t('portal.submit') }}</Button>
-        <span v-else class="inline-flex items-center gap-2 text-sm font-medium text-primary"><CheckCircle2 class="size-4" />{{ t('portal.readOnly') }}</span>
+      <section class="app-panel overflow-hidden">
+        <div class="flex flex-wrap items-center gap-4 px-5 py-4">
+          <div class="min-w-0 flex-1"><p class="text-sm font-medium">{{ editable ? t('portal.submitTitle') : t('portal.submittedTitle') }}</p><p class="mt-1 text-xs text-muted-foreground">{{ editable ? t('portal.submitHint') : t('portal.submittedHint') }}</p><p v-if="validationMessage" class="mt-2 text-xs font-medium text-amber-700 dark:text-amber-300">{{ validationMessage }}</p></div>
+          <Button v-if="editable" class="h-10" @click="askSubmit">{{ t('portal.submit') }}</Button>
+          <span v-else class="inline-flex items-center gap-2 text-sm font-medium text-primary"><CheckCircle2 class="size-4" />{{ t('portal.readOnly') }}</span>
+        </div>
+        <div v-if="editable" class="space-y-2 border-t px-5 py-4">
+          <Label for="submission-note">{{ t('portal.submissionNote') }}</Label>
+          <textarea id="submission-note" v-model="submissionNote" rows="3" maxlength="2000" :placeholder="t('portal.submissionNotePlaceholder')" class="w-full resize-y rounded-xl border bg-background px-3 py-2 text-sm outline-none focus:ring-3 focus:ring-ring/50" />
+          <p class="text-xs text-muted-foreground">{{ t('portal.submissionNoteHint') }}</p>
+        </div>
+        <div v-else-if="detail.submission?.note" class="border-t px-5 py-4"><p class="whitespace-pre-wrap text-sm leading-6">{{ detail.submission.note }}</p></div>
       </section>
 
       <DialogRoot :open="smartDialogOpen" @update:open="requestSmartClose">
@@ -519,6 +559,7 @@ onBeforeUnmount(() => timers.forEach(clearTimeout))
         @confirm="discardSmartUpload"
       />
 
+      <DocumentPreviewDialog v-if="previewDocument" v-model:open="previewOpen" :name="previewDocument.name" :content-type="previewDocument.contentType" :load="() => portalApi.download(previewDocument!.linkId)" />
       <ConfirmDialog v-model:open="confirmSubmit" :title="t('portal.confirmTitle')" :description="t('portal.confirmHint')" :busy="busy" @confirm="submit" />
     </template>
   </section>

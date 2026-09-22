@@ -16,6 +16,7 @@ const DashboardView = () => import('@/views/DashboardView.vue')
 const CollectionsView = () => import('@/views/CollectionsView.vue')
 const CollectionDetailView = () => import('@/views/CollectionDetailView.vue')
 const CollectionFormView = () => import('@/views/CollectionFormView.vue')
+const CollectionReviewView = () => import('@/views/CollectionReviewView.vue')
 const PortalCollectionsView = () => import('@/views/PortalCollectionsView.vue')
 const PortalCollectionDetailView = () => import('@/views/PortalCollectionDetailView.vue')
 
@@ -34,6 +35,7 @@ export const router = createRouter({
         { path: 'collections/new', name: 'collection-new', component: CollectionFormView, meta: { title: 'collections.new' } },
         { path: 'collections/:id/edit', name: 'collection-edit', component: CollectionFormView, meta: { title: 'collections.edit' } },
         { path: 'collections/:id', name: 'collection-detail', component: CollectionDetailView, meta: { title: 'collections.requestDetails' } },
+        { path: 'collections/:id/review', name: 'collection-review', component: CollectionReviewView, meta: { title: 'review.title' } },
         { path: 'clients', name: 'clients', component: ClientsView, meta: { title: 'accounts.clients' } },
         { path: 'clients/new', name: 'client-new', component: ClientDetailView, meta: { firmAdmin: true, title: 'accounts.newClient' } },
         { path: 'clients/:id', name: 'client-detail', component: ClientDetailView, meta: { title: 'accounts.clients' } },

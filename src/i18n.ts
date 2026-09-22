@@ -4,6 +4,7 @@ import { peopleMessages } from './i18n/people'
 import { contactsMessages } from './i18n/contacts'
 import { collectionsMessages } from './i18n/collections'
 import { portalMessages } from './i18n/portal'
+import { reviewMessages } from './i18n/review'
 
 export type AppLocale = 'en' | 'zh-CN'
 let savedLocale: string | null = null
@@ -17,6 +18,7 @@ const messages = {
     ...contactsMessages.en,
     ...collectionsMessages.en,
     ...portalMessages.en,
+    ...reviewMessages.en,
     app: { name: 'Client Records' },
     auth: {
       signIn: 'Sign in', signOut: 'Sign out', email: 'Email', password: 'Password',
@@ -106,9 +108,15 @@ const messages = {
         DOCUMENTS_PROCESSING: 'Wait for all files to finish processing.',
         REQUIRED_DOCUMENTS_MISSING: 'Upload every required document before submitting.',
         SUBMISSION_READ_ONLY: 'This submission can no longer be changed.',
+        ACTION_REQUIRED: 'Mark at least one item as needing action before returning the request.',
+        REQUIREMENTS_INCOMPLETE: 'Review every required item before approval.',
+        INVALID_SUBMISSION: 'This submission is no longer available. Reload the review.',
       },
     },
-    common: { language: 'Language', english: 'English', chinese: '简体中文' },
+    common: {
+      language: 'Language', english: 'English', chinese: '简体中文', filePreview: 'File preview',
+      previewLoading: 'Loading preview…', previewUnavailable: 'Preview unavailable.', download: 'Download', close: 'Close', clear: 'Clear',
+    },
     notFound: {
       title: 'Page not found', back: 'Return to workspace',
       description: 'This page may have moved, or the link may be incorrect. Return to your workspace to continue.',
@@ -122,6 +130,7 @@ const messages = {
     ...contactsMessages['zh-CN'],
     ...collectionsMessages['zh-CN'],
     ...portalMessages['zh-CN'],
+    ...reviewMessages['zh-CN'],
     app: { name: '客户资料' },
     auth: {
       signIn: '登录', signOut: '退出登录', email: '邮箱', password: '密码',
@@ -211,9 +220,15 @@ const messages = {
         DOCUMENTS_PROCESSING: '请等待所有文件处理完成。',
         REQUIRED_DOCUMENTS_MISSING: '请先上传全部必交资料。',
         SUBMISSION_READ_ONLY: '本轮资料已不能修改。',
+        ACTION_REQUIRED: '退回前请至少将一项资料标记为需要客户处理。',
+        REQUIREMENTS_INCOMPLETE: '批准前请完成所有必交资料的审核。',
+        INVALID_SUBMISSION: '本轮提交已不可用，请重新加载审核页面。',
       },
     },
-    common: { language: '语言', english: 'English', chinese: '简体中文' },
+    common: {
+      language: '语言', english: 'English', chinese: '简体中文', filePreview: '文件预览',
+      previewLoading: '正在加载预览…', previewUnavailable: '暂不支持预览此文件。', download: '下载', close: '关闭', clear: '清除',
+    },
     notFound: {
       title: '页面不存在', back: '返回工作空间',
       description: '页面可能已移动，或链接不正确。返回工作空间继续操作。',
