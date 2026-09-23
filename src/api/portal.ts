@@ -60,6 +60,7 @@ export interface PortalCollectionListQuery {
 }
 
 export interface PortalCollectionDetail extends PortalCollectionSummary {
+  reviewStatus?: 'PROCESSING' | 'AWAITING_ACCOUNTANT' | null
   scopeNote: string | null
   requirements: PortalRequirement[]
   submission: PortalSubmission | null
@@ -70,17 +71,32 @@ export interface PortalUploadResult {
   document: PortalDocument
 }
 
-export interface ClassificationResult {
-  provider: 'FAKE'
-  items: Array<{ index: number; category: 'REQUIREMENT' | 'OTHER' | 'INVALID'; requirementId: string | null; confidence: number }>
+export interface ClassificationChoice { documentId: string; category: 'REQUIREMENT' | 'OTHER' | 'INVALID'; requirementId: string | null }
+export interface ClassificationRun {
+  id: string
+  status: 'DRAFT' | 'QUEUED' | 'PROCESSING' | 'SUCCEEDED' | 'FAILED' | 'CANCELLED'
+  provider: 'MOCK' | 'REMOTE' | 'MANUAL' | 'DISABLED'
+  error: string | null
+  confirmedAt: string | null
+  documents: Array<{ documentId: string; name: string; status: DocumentStatus; failureCode: string | null }>
+  items: Array<ClassificationChoice & { documentType: string | null; confidence: number }>
 }
 
 export const portalApi = {
+  createClassification: (id: string) => api.post<ClassificationRun>(`/portal/collection-requests/${id}/classification-runs`).then(({ data }) => data),
+  stage: (id: string, runId: string, file: File, onProgress: (event: AxiosProgressEvent) => void) => {
+    const body = new FormData()
+    body.append('file', file)
+    body.append('classification_run_id', runId)
+    return api.post<{ documentId: string }>(`/portal/collection-requests/${id}/documents`, body, { onUploadProgress: onProgress }).then(({ data }) => data)
+  },
+  startClassification: (id: string, runId: string) => api.post<ClassificationRun>(`/portal/collection-requests/${id}/classification-runs/${runId}/start`).then(({ data }) => data),
+  classification: (id: string, runId: string) => api.get<ClassificationRun>(`/portal/collection-requests/${id}/classification-runs/${runId}`).then(({ data }) => data),
+  cancelClassification: (id: string, runId: string) => api.post<ClassificationRun>(`/portal/collection-requests/${id}/classification-runs/${runId}/cancel`).then(({ data }) => data),
+  manualClassification: (id: string, runId: string) => api.post<ClassificationRun>(`/portal/collection-requests/${id}/classification-runs/${runId}/manual`).then(({ data }) => data),
+  confirmClassification: (id: string, runId: string, items: ClassificationChoice[]) => api.post<ClassificationRun>(`/portal/collection-requests/${id}/classification-runs/${runId}/confirm`, { items }).then(({ data }) => data),
   list: (params: PortalCollectionListQuery = {}) => api.get<{ items: PortalCollectionSummary[]; total: number }>('/portal/collection-requests', { params }).then(({ data }) => data),
   get: (id: string) => api.get<PortalCollectionDetail>(`/portal/collection-requests/${id}`).then(({ data }) => data),
-  classify: (id: string, files: File[]) => api.post<ClassificationResult>(`/portal/collection-requests/${id}/classify`, {
-    files: files.map(file => ({ name: file.name, contentType: file.type || 'application/octet-stream', sizeBytes: file.size })),
-  }).then(({ data }) => data),
   upload: (id: string, requirementId: string | null, file: File, onProgress: (event: AxiosProgressEvent) => void) => {
     const body = new FormData()
     body.append('file', file)

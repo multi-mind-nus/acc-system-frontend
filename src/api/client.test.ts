@@ -70,20 +70,18 @@ describe('API boundary', () => {
     ])
   })
 
-  it('sends smart-upload metadata and preserves the invalid classification', async () => {
+  it('sends classification confirmation in snake_case and preserves invalid items', async () => {
     let requestBody: Record<string, unknown> = {}
     api.defaults.adapter = (config) => {
       requestBody = JSON.parse(config.data as string)
       return response(config, {
-        provider: 'FAKE', items: [{ index: 0, category: 'INVALID', requirement_id: null, confidence: 0.99 }],
+        provider: 'MOCK', items: [{ document_id: 'doc', category: 'INVALID', requirement_id: null, confidence: 0.99 }],
       })
     }
-    const file = new File(['notes'], 'notes.txt', { type: 'text/plain' })
+    const result = await portalApi.confirmClassification('request-1', 'run-1', [{ documentId: 'doc', category: 'INVALID', requirementId: null }])
 
-    const result = await portalApi.classify('request-1', [file])
-
-    expect(requestBody).toEqual({ files: [{ name: 'notes.txt', content_type: 'text/plain', size_bytes: 5 }] })
-    expect(result.items[0]).toEqual({ index: 0, category: 'INVALID', requirementId: null, confidence: 0.99 })
+    expect(requestBody).toEqual({ items: [{ document_id: 'doc', category: 'INVALID', requirement_id: null }] })
+    expect(result.items[0]).toEqual({ documentId: 'doc', category: 'INVALID', requirementId: null, confidence: 0.99 })
   })
 
   it('converts request keys to snake_case and response keys to camelCase', async () => {

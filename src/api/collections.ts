@@ -3,6 +3,9 @@ import type { Page } from './accounts'
 
 export type CollectionStatus = 'DRAFT' | 'OPEN' | 'IN_REVIEW' | 'CHANGES_REQUESTED' | 'READY_FOR_BOOKKEEPING' | 'CLOSED' | 'CANCELLED'
 export type RequirementStatus = 'PENDING' | 'RECEIVED' | 'NEEDS_ACTION' | 'SATISFIED' | 'WAIVED'
+export type AIMode = 'OFF' | 'SUGGEST' | 'AUTO_REVIEW'
+export type AnalysisType = 'DOCUMENT_REQUIREMENT_VALIDATION' | 'BANK_TRANSACTION_RECONCILIATION'
+export interface AIPolicy { aiMode?: AIMode; aiSatisfyThreshold?: string; aiRequestActionThreshold?: string }
 
 export interface RequirementInput {
   type: string
@@ -12,6 +15,7 @@ export interface RequirementInput {
 }
 
 export interface Requirement extends RequirementInput {
+  analysisType?: AnalysisType
   id: string
   position: number
   origin: 'INITIAL' | 'FOLLOW_UP'
@@ -43,12 +47,12 @@ export interface WorkflowEvent {
   createdAt: string
 }
 
-export interface CollectionDetail extends CollectionSummary {
+export interface CollectionDetail extends CollectionSummary, AIPolicy {
   requirements: Requirement[]
   events: WorkflowEvent[]
 }
 
-export interface CollectionInput {
+export interface CollectionInput extends AIPolicy {
   clientId: string
   period: string
   dueAt: string
@@ -85,7 +89,7 @@ export const collectionsApi = {
   list: (params: CollectionListQuery = {}) => api.get<Page<CollectionSummary>>('/collection-requests', { params }).then(({ data }) => data),
   get: (id: string) => api.get<CollectionDetail>(`/collection-requests/${id}`).then(({ data }) => data),
   create: (body: CollectionInput, key: string) => api.post<CollectionDetail>('/collection-requests', body, idempotency(key)).then(({ data }) => data),
-  update: (id: string, body: { version: number; dueAt?: string; scopeNote?: string | null; assigneeId?: string }) => api.patch<CollectionDetail>(`/collection-requests/${id}`, body).then(({ data }) => data),
+  update: (id: string, body: AIPolicy & { version: number; dueAt?: string; scopeNote?: string | null; assigneeId?: string }) => api.patch<CollectionDetail>(`/collection-requests/${id}`, body).then(({ data }) => data),
   publish: (id: string, version: number, key: string) => api.post<CollectionDetail>(`/collection-requests/${id}/publish`, { version }, idempotency(key)).then(({ data }) => data),
   cancel: (id: string, version: number, reason: string, key: string) => api.post<CollectionDetail>(`/collection-requests/${id}/cancel`, { version, reason }, idempotency(key)).then(({ data }) => data),
   copy: (id: string, period: string, key: string) => api.post<CollectionDetail>(`/collection-requests/${id}/copy`, undefined, { params: { period }, ...idempotency(key) }).then(({ data }) => data),

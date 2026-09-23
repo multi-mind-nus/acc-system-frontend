@@ -61,9 +61,43 @@ export interface ReviewCollection {
   events: WorkflowEvent[]
 }
 
+export interface ReviewFinding {
+  requirementId: string
+  action: 'ASK_CLIENT' | 'RESOLVE' | 'ESCALATE'
+  suggestedDecision: 'SATISFY' | 'REQUEST_ACTION' | null
+  issueCode: IssueCode | null
+  confidence: number
+  entityCheck: 'MATCH' | 'MISMATCH' | 'UNKNOWN'
+  periodCheck: 'MATCH' | 'MISMATCH' | 'UNKNOWN'
+  explanation: string
+  clientMessage: string | null
+  evidence: Array<{ documentId: string; relation: EvidenceRelation; reason: string }>
+  amounts: Array<{ currency: string; operation: 'SUM' | 'SUBTRACT' | 'MULTIPLY'; operands: Array<{ documentId: string; amount: string; label: string }>; expectedAmount: string; actualAmount: string; difference: string }>
+  amountsValid: boolean
+  manualReasons: string[]
+}
+
+export interface ReviewRun {
+  id: string
+  submissionId: string
+  status: 'QUEUED' | 'PROCESSING' | 'SUCCEEDED' | 'FAILED' | 'CANCELLED'
+  modelVersion: string | null
+  error: string | null
+  createdAt: string
+  finishedAt: string | null
+  documents: Array<{ id: string; name: string; contentType: string; scope: 'CURRENT' | 'HISTORY' }>
+  searches: Array<{ action: 'SEARCH_CURRENT' | 'SEARCH_HISTORY'; count: number }>
+  output: {
+    findings: ReviewFinding[]
+    extractions: Array<{ documentId: string; documentType: string | null; entityName: string | null; period: string | null; invoiceNumber: string | null; counterparty: string | null; amount: string | null; currency: string | null; transactions: Array<{ date: string; description: string; amount: string; currency: string }> }>
+  } | null
+}
+
 const idempotency = (key: string) => ({ headers: { 'Idempotency-Key': key } })
 
 export const reviewApi = {
+  runs: (id: string) => api.get<ReviewRun[]>(`/collection-requests/${id}/review-runs`).then(({ data }) => data),
+  retryRun: (id: string, runId: string) => api.post<ReviewRun>(`/collection-requests/${id}/review-runs/${runId}/retry`).then(({ data }) => data),
   get: (id: string) => api.get<ReviewCollection>(`/collection-requests/${id}/review`).then(({ data }) => data),
   review: (id: string, body: {
     version: number

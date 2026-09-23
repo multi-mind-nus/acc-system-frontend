@@ -4,6 +4,7 @@ import { computed, reactive, ref, watch, type Component } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { collectionsApi, type CollectionDetail, type WorkflowEvent } from '@/api/collections'
 import { readApiError } from '@/api/client'
+import { aiThresholdLevel } from '@/lib/ai-policy'
 import ConfirmDialog from '@/components/ConfirmDialog.vue'
 import ErrorNotice from '@/components/ErrorNotice.vue'
 import StatusBadge from '@/components/StatusBadge.vue'
@@ -127,6 +128,12 @@ watch(() => props.requestId, () => { activityExpanded.value = false; load() }, {
               <div :class="embedded ? '' : 'px-6 py-5'"><dt class="text-xs text-muted-foreground"><CalendarDays class="mr-1 inline size-3.5" />{{ t('collections.dueDate') }}</dt><dd class="mt-1.5 text-sm font-medium">{{ formatDate(detail.dueAt) }}</dd></div>
               <div :class="embedded ? '' : 'px-6 py-5'"><dt class="text-xs text-muted-foreground"><UserRound class="mr-1 inline size-3.5" />{{ t('collections.assignee') }}</dt><dd class="mt-1.5 text-sm font-medium">{{ detail.assigneeName }}</dd></div>
             </dl>
+            <div v-if="detail.aiMode" :class="embedded ? 'mt-4' : 'border-t px-6 py-5'">
+              <p class="text-xs text-muted-foreground">{{ t('collections.aiPolicy') }}</p>
+              <p class="mt-2 text-sm font-medium">{{ t(`collections.aiModes.${detail.aiMode}`) }}</p>
+              <p v-if="detail.aiMode === 'AUTO_REVIEW'" class="mt-1 text-xs text-muted-foreground">{{ t('collections.aiSatisfyThreshold') }}: {{ t(`collections.aiLevels.${aiThresholdLevel(detail.aiSatisfyThreshold)}`) }} · {{ t('collections.aiReturnThreshold') }}: {{ t(`collections.aiLevels.${aiThresholdLevel(detail.aiRequestActionThreshold)}`) }}</p>
+              <p class="mt-2 text-xs leading-5 text-muted-foreground">{{ t('collections.aiPolicyHint') }}</p>
+            </div>
             <div v-if="detail.scopeNote" :class="embedded ? 'mt-4' : 'border-t px-6 py-5'"><p class="text-xs text-muted-foreground">{{ t('collections.scopeNote') }}</p><p class="mt-2 whitespace-pre-wrap text-sm leading-6">{{ detail.scopeNote }}</p></div>
           </section>
 

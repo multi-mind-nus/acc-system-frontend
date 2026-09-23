@@ -1,11 +1,11 @@
 <script setup lang="ts">
 import { AlertCircle, ArrowLeft, CheckCircle2, Download, FileText, GripVertical, MessageSquareText, RotateCw, Sparkles, Trash2, Upload, X } from '@lucide/vue'
 import { DialogContent, DialogDescription, DialogOverlay, DialogPortal, DialogRoot, DialogTitle } from 'reka-ui'
-import { computed, onBeforeUnmount, onMounted, reactive, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute } from 'vue-router'
 import { readApiError } from '@/api/client'
-import { portalApi, type PortalCollectionDetail, type PortalDocument, type PortalRequirement } from '@/api/portal'
+import { portalApi, type ClassificationRun, type PortalCollectionDetail, type PortalDocument, type PortalRequirement } from '@/api/portal'
 import ConfirmDialog from '@/components/ConfirmDialog.vue'
 import DocumentPreviewDialog from '@/components/DocumentPreviewDialog.vue'
 import ErrorNotice from '@/components/ErrorNotice.vue'
@@ -23,6 +23,9 @@ interface SmartCandidate {
   target: string
   suggestedTarget: string
   confidence: number
+  documentId?: string
+  failure?: string
+  available?: boolean
 }
 
 const INVALID_TARGET = '__invalid__'
@@ -43,20 +46,40 @@ const previewDocument = ref<PortalDocument | null>(null)
 const uploads = reactive<Record<string, UploadState>>({})
 const dragging = ref<string | null>(null)
 const smartDragging = ref(false)
-const smartUpload = reactive({ busy: false, completed: 0, total: 0, failed: 0 })
+const smartUpload = reactive({ busy: false })
 const smartDialogOpen = ref(false)
-const smartPhase = ref<'confirm' | 'analyzing' | 'results' | 'uploading'>('confirm')
+const smartPhase = ref<'confirm' | 'staging' | 'scanning' | 'analyzing' | 'results' | 'uploading'>('confirm')
+const smartRun = ref<ClassificationRun | null>(null)
+const smartManual = ref(false)
+const smartProgress = ref(0)
+const smartCancelling = ref(false)
 const smartCandidates = ref<SmartCandidate[]>([])
 const smartClassificationError = ref<ReturnType<typeof readApiError> | null>(null)
 const smartCancelConfirm = ref(false)
 const smartDragTarget = ref<string | null>(null)
 const draggedCandidateId = ref<string | null>(null)
+const selectedCandidateId = ref<string | null>(null)
 const timers = new Set<ReturnType<typeof setTimeout>>()
 let smartGeneration = 0
+let reviewTimer: ReturnType<typeof setTimeout> | undefined
+let disposed = false
+function pollReview() {
+  clearTimeout(reviewTimer)
+  if (disposed || detail.value?.reviewStatus !== 'PROCESSING') return
+  reviewTimer = setTimeout(async () => {
+    try {
+      const value = await portalApi.get(String(route.params.id))
+      if (!disposed && detail.value) detail.value.reviewStatus = value.reviewStatus
+    } catch { /* Keep the submitted state; analysis never blocks manual review. */ }
+    pollReview()
+  }, 3000)
+}
+watch(() => detail.value?.reviewStatus, pollReview)
 
 const editable = computed(() => detail.value && ['OPEN', 'CHANGES_REQUESTED'].includes(detail.value.status))
+const isOtherBucket = (item: PortalRequirement) => item.id === detail.value?.id
 const requirementEditable = (item: PortalRequirement) => detail.value?.status === 'OPEN'
-  || (detail.value?.status === 'CHANGES_REQUESTED' && item.status === 'NEEDS_ACTION')
+  || (detail.value?.status === 'CHANGES_REQUESTED' && !isOtherBucket(item) && ['PENDING', 'RECEIVED', 'NEEDS_ACTION'].includes(item.status))
 const requirementHasIssue = (item: PortalRequirement) => item.status === 'NEEDS_ACTION'
   || (item.status === 'RECEIVED' && Boolean(item.clientMessage))
 const editableRequirements = computed(() => detail.value?.requirements.filter(requirementEditable) ?? [])
@@ -64,6 +87,7 @@ const required = computed(() => detail.value?.requirements.filter(item => item.r
 const requirementReady = (item: PortalRequirement) => ['SATISFIED', 'WAIVED'].includes(item.status)
   || item.documents.some(document => document.status === 'AVAILABLE' && (
     !editable.value || document.countsForSubmission
+    || (detail.value?.status === 'CHANGES_REQUESTED' && ['PENDING', 'RECEIVED'].includes(item.status))
   ))
 const readyRequired = computed(() => required.value.filter(requirementReady).length)
 const progress = computed(() => required.value.length ? Math.round(readyRequired.value / required.value.length * 100) : 100)
@@ -72,7 +96,7 @@ const missing = computed(() => required.value.filter(item => !requirementReady(i
 const smartCategories = computed(() => [
   ...editableRequirements.value.map(requirement => ({
     target: requirement.id,
-    label: requirement.type === 'OTHER' ? t('collections.types.OTHER') : requirement.title,
+    label: isOtherBucket(requirement) ? t('collections.types.OTHER') : requirement.title,
   })),
   { target: INVALID_TARGET, label: t('portal.invalidClassification') },
 ])
@@ -144,7 +168,7 @@ async function upload(requirement: PortalRequirement, file: File) {
   validationMessage.value = ''
   try {
     const result = await portalApi.upload(
-      String(route.params.id), requirement.type === 'OTHER' ? null : requirement.id, file,
+      String(route.params.id), isOtherBucket(requirement) ? null : requirement.id, file,
       event => { state.progress = event.total ? Math.round(event.loaded / event.total * 100) : 0 },
     )
     detail.value = await portalApi.get(String(route.params.id))
@@ -191,39 +215,68 @@ function prepareSmartUpload(files: File[]) {
     confidence: 0,
   }))
   smartDialogOpen.value = true
+  smartRun.value = null
+  selectedCandidateId.value = null
+  smartManual.value = false
+  smartProgress.value = 0
   smartPhase.value = 'confirm'
   smartClassificationError.value = null
-  smartUpload.completed = 0
-  smartUpload.total = 0
-  smartUpload.failed = 0
   actionError.value = null
 }
 
 async function startSmartAnalysis() {
   if (!detail.value || smartPhase.value !== 'confirm') return
   const generation = smartGeneration
-  smartPhase.value = 'analyzing'
+  smartPhase.value = 'staging'
   smartClassificationError.value = null
   try {
-    const result = await portalApi.classify(String(route.params.id), smartCandidates.value.map(candidate => candidate.file))
+    const requestId = String(route.params.id)
+    const run = smartRun.value ?? await portalApi.createClassification(requestId)
+    if (generation !== smartGeneration) { await portalApi.cancelClassification(requestId, run.id); return }
+    smartRun.value = run
+    for (const [index, candidate] of smartCandidates.value.entries()) {
+      if (generation !== smartGeneration) return
+      if (candidate.documentId || candidate.failure) continue
+      try {
+        const result = await portalApi.stage(requestId, run.id, candidate.file, event => { if (generation === smartGeneration) smartProgress.value = Math.round((index + (event.total ? event.loaded / event.total : 0)) / smartCandidates.value.length * 100) })
+        candidate.documentId = result.documentId
+      } catch (caught) {
+        candidate.failure = translatedError(readApiError(caught)) ?? t('portal.failure.UNKNOWN')
+        candidate.target = INVALID_TARGET
+      }
+    }
     if (generation !== smartGeneration) return
-    const fallback = detail.value.requirements.find(item => item.type === 'OTHER')
-    for (const candidate of smartCandidates.value) {
-      candidate.target = INVALID_TARGET
-      candidate.suggestedTarget = INVALID_TARGET
-      candidate.confidence = 0
+    // Content deduplication is authoritative on the server, including renamed files.
+    const seen = new Set<string>()
+    smartCandidates.value = smartCandidates.value.filter(candidate => {
+      if (!candidate.documentId) return true
+      if (seen.has(candidate.documentId)) return false
+      seen.add(candidate.documentId)
+      return true
+    })
+    if (!seen.size) { smartManual.value = true; smartPhase.value = 'results'; return }
+    const started = await portalApi.startClassification(requestId, run.id)
+    if (generation !== smartGeneration) return
+    smartRun.value = started
+    while (generation === smartGeneration) {
+      const current = await portalApi.classification(requestId, run.id)
+      if (generation !== smartGeneration) return
+      smartRun.value = current
+      for (const candidate of smartCandidates.value) {
+        const document = current.documents.find(item => item.documentId === candidate.documentId)
+        candidate.available = document?.status === 'AVAILABLE'
+        if (document?.status === 'FAILED') candidate.failure = failureText(document.failureCode)
+      }
+      if (current.status === 'SUCCEEDED' || current.status === 'FAILED') {
+        smartManual.value = current.status === 'FAILED' || current.provider === 'MANUAL'
+        applyClassification(current)
+        smartPhase.value = 'results'
+        return
+      }
+      if (current.status === 'CANCELLED') { discardSmartUpload(); return }
+      smartPhase.value = current.documents.some(doc => doc.status === 'QUARANTINED') ? 'scanning' : 'analyzing'
+      await new Promise(resolve => setTimeout(resolve, 1000))
     }
-    for (const item of result.items) {
-      const candidate = smartCandidates.value[item.index]
-      const requirement = detail.value.requirements.find(value => value.id === item.requirementId)
-      if (!candidate) continue
-      candidate.confidence = item.confidence
-      candidate.target = item.category === 'REQUIREMENT' && requirement
-        ? requirement.id
-        : item.category === 'OTHER' && fallback ? fallback.id : INVALID_TARGET
-      candidate.suggestedTarget = candidate.target
-    }
-    smartPhase.value = 'results'
   } catch (caught) {
     if (generation === smartGeneration) {
       smartClassificationError.value = readApiError(caught)
@@ -232,13 +285,49 @@ async function startSmartAnalysis() {
   }
 }
 
+function applyClassification(run: ClassificationRun) {
+  const fallback = editableRequirements.value.find(isOtherBucket)?.id ?? INVALID_TARGET
+  for (const candidate of smartCandidates.value) {
+    const item = run.items.find(item => item.documentId === candidate.documentId)
+    candidate.target = !candidate.available ? INVALID_TARGET : item?.category === 'REQUIREMENT' && editableRequirements.value.some(req => req.id === item.requirementId) ? item.requirementId! : item?.category === 'INVALID' ? INVALID_TARGET : fallback
+    candidate.suggestedTarget = candidate.target
+    candidate.confidence = item?.confidence ?? 0
+  }
+}
+
+async function classifyManually() {
+  if (!smartRun.value) return
+  const generation = smartGeneration
+  try {
+    const run = await portalApi.manualClassification(String(route.params.id), smartRun.value.id)
+    if (generation !== smartGeneration) return
+    smartGeneration += 1
+    smartRun.value = run
+    smartManual.value = true
+    for (const candidate of smartCandidates.value) candidate.available = run.documents.some(doc => doc.documentId === candidate.documentId && doc.status === 'AVAILABLE')
+    applyClassification(run)
+    smartPhase.value = 'results'
+  } catch (caught) { if (generation === smartGeneration) smartClassificationError.value = readApiError(caught) }
+}
+
 function requestSmartClose(open: boolean) {
   if (open || smartPhase.value === 'uploading') return
   smartCancelConfirm.value = true
 }
 
-function discardSmartUpload() {
+async function discardSmartUpload() {
+  if (smartCancelling.value) return
+  smartCancelling.value = true
   smartGeneration += 1
+  try {
+    if (smartRun.value && !smartRun.value.confirmedAt) await portalApi.cancelClassification(String(route.params.id), smartRun.value.id)
+  } catch (caught) {
+    smartClassificationError.value = readApiError(caught)
+    smartCancelConfirm.value = false
+    smartPhase.value = 'confirm'
+    return
+  }
+  finally { smartCancelling.value = false }
   smartDialogOpen.value = false
   smartCancelConfirm.value = false
   smartPhase.value = 'confirm'
@@ -246,10 +335,11 @@ function discardSmartUpload() {
   smartClassificationError.value = null
   smartDragTarget.value = null
   draggedCandidateId.value = null
+  smartRun.value = null
 }
 
 function removeSmartCandidate(candidateId: string) {
-  smartCandidates.value = smartCandidates.value.filter(candidate => candidate.id !== candidateId)
+  smartCandidates.value = smartCandidates.value.filter(candidate => candidate.id !== candidateId || candidate.documentId)
 }
 
 function startSmartDrag(candidate: SmartCandidate, event: DragEvent) {
@@ -262,7 +352,8 @@ function startSmartDrag(candidate: SmartCandidate, event: DragEvent) {
 
 function moveSmartCandidate(candidateId: string, target: string) {
   const candidate = smartCandidates.value.find(item => item.id === candidateId)
-  if (candidate) candidate.target = target
+  if (candidate && candidate.available && smartCategories.value.some(category => category.target === target)) candidate.target = target
+  selectedCandidateId.value = null
 }
 
 function dropSmartCandidate(target: string, event: DragEvent) {
@@ -274,24 +365,25 @@ function dropSmartCandidate(target: string, event: DragEvent) {
 
 async function confirmSmartUpload() {
   if (!detail.value || smartPhase.value !== 'results') return
-  const selected = smartCandidates.value.filter(candidate => candidate.target !== INVALID_TARGET)
   smartPhase.value = 'uploading'
   smartUpload.busy = true
-  smartUpload.completed = 0
-  smartUpload.total = selected.length
-  smartUpload.failed = 0
   try {
-    for (const candidate of selected) {
-      const requirement = detail.value.requirements.find(item => item.id === candidate.target)
-      if (!requirement || !await upload(requirement, candidate.file)) smartUpload.failed += 1
-      else if (!expanded.value.includes(requirement.id)) expanded.value.push(requirement.id)
-      smartUpload.completed += 1
-    }
+    if (smartRun.value && smartCandidates.value.some(candidate => candidate.documentId)) {
+      smartRun.value = await portalApi.confirmClassification(String(route.params.id), smartRun.value.id, smartCandidates.value.filter(candidate => candidate.documentId).map(candidate => {
+        const requirement = detail.value?.requirements.find(item => item.id === candidate.target)
+        const other = requirement && isOtherBucket(requirement)
+        return { documentId: candidate.documentId!, category: candidate.target === INVALID_TARGET ? 'INVALID' : other ? 'OTHER' : 'REQUIREMENT', requirementId: candidate.target === INVALID_TARGET || other ? null : candidate.target }
+      }))
+    } else if (smartRun.value) { await portalApi.cancelClassification(String(route.params.id), smartRun.value.id) }
+    detail.value = await portalApi.get(String(route.params.id))
+    smartDialogOpen.value = false
+    smartCandidates.value = []
+    smartRun.value = null
+  } catch (caught) {
+    smartClassificationError.value = readApiError(caught)
+    smartPhase.value = 'results'
   } finally {
     smartUpload.busy = false
-    smartDialogOpen.value = false
-    smartPhase.value = 'confirm'
-    smartCandidates.value = []
   }
 }
 
@@ -353,7 +445,7 @@ async function submit() {
 }
 
 onMounted(load)
-onBeforeUnmount(() => timers.forEach(clearTimeout))
+onBeforeUnmount(() => { disposed = true; clearTimeout(reviewTimer); smartGeneration += 1; timers.forEach(clearTimeout) })
 </script>
 
 <template>
@@ -363,6 +455,7 @@ onBeforeUnmount(() => timers.forEach(clearTimeout))
     <div v-if="error" class="space-y-3"><ErrorNotice v-bind="error" /><Button variant="outline" @click="load">{{ t('portal.retry') }}</Button></div>
     <p v-else-if="loading" role="status" class="text-sm text-muted-foreground">{{ t('portal.loading') }}</p>
     <template v-else-if="detail">
+      <p v-if="detail.reviewStatus" role="status" class="rounded-xl border bg-muted/30 px-4 py-3 text-sm text-muted-foreground">{{ t(`portal.reviewStatus.${detail.reviewStatus}`) }}</p>
       <header class="flex flex-wrap items-start justify-between gap-4">
         <div><p class="text-sm text-muted-foreground">{{ detail.clientName }}</p><h1 class="mt-1 text-[32px] leading-tight font-semibold tracking-[-0.025em]">{{ formatPeriod(detail.period) }}</h1></div>
         <StatusBadge :status="detail.status" translation-prefix="collections.status" />
@@ -395,10 +488,6 @@ onBeforeUnmount(() => timers.forEach(clearTimeout))
             <span class="hidden text-xs font-medium text-primary sm:block">{{ t('portal.chooseFiles') }}</span>
             <input class="sr-only" type="file" multiple accept=".pdf,.png,.jpg,.jpeg,application/pdf,image/png,image/jpeg" :disabled="smartUpload.busy" @change="chooseSmartFiles">
           </label>
-          <div v-if="smartUpload.total" class="mt-3" role="status">
-            <div class="mb-2 flex justify-between text-xs text-muted-foreground"><span>{{ smartUpload.busy ? t('portal.smartUploading') : smartUpload.failed ? t('portal.smartUploadPartial', { count: smartUpload.failed }) : t('portal.smartUploadComplete') }}</span><span>{{ smartUpload.completed }}/{{ smartUpload.total }}</span></div>
-            <Progress :model-value="smartUpload.completed / smartUpload.total * 100" class="h-1.5" />
-          </div>
         </div>
         <Accordion v-model="expanded" type="multiple">
           <AccordionItem v-for="requirement in detail.requirements" :key="requirement.id" :value="requirement.id" class="px-5 sm:px-7">
@@ -476,26 +565,30 @@ onBeforeUnmount(() => timers.forEach(clearTimeout))
             </header>
 
             <div class="min-h-0 flex-1 overflow-y-auto p-6">
+              <ErrorNotice v-if="smartClassificationError" v-bind="smartClassificationError" class="mb-4" />
               <template v-if="smartPhase === 'confirm'">
-                <ErrorNotice v-if="smartClassificationError" v-bind="smartClassificationError" class="mb-4" />
                 <div class="divide-y rounded-xl border">
                   <div v-for="candidate in smartCandidates" :key="candidate.id" class="flex items-center gap-3 px-4 py-3">
                     <FileTypeIcon :name="candidate.file.name" :content-type="candidate.file.type" />
                     <div class="min-w-0 flex-1"><p class="truncate text-sm font-medium" :title="candidate.file.name">{{ candidate.file.name }}</p><p class="mt-0.5 text-xs text-muted-foreground">{{ formatSize(candidate.file.size) }}</p></div>
-                    <Button type="button" variant="ghost" size="icon-sm" :aria-label="t('portal.removeSelectedFile')" @click="removeSmartCandidate(candidate.id)"><Trash2 class="size-4" /></Button>
+                    <Button type="button" variant="ghost" size="icon-sm" :disabled="Boolean(candidate.documentId)" :aria-label="t('portal.removeSelectedFile')" @click="removeSmartCandidate(candidate.id)"><Trash2 class="size-4" /></Button>
                   </div>
                 </div>
               </template>
 
-              <div v-else-if="smartPhase === 'analyzing'" role="status" class="grid min-h-80 place-items-center text-center">
-                <div>
+              <div v-else-if="['staging', 'scanning', 'analyzing'].includes(smartPhase)" role="status" class="grid min-h-80 place-items-center text-center">
+                <div class="w-full max-w-sm">
                   <span class="relative mx-auto grid size-16 place-items-center rounded-full bg-primary text-primary-foreground"><span class="absolute inset-0 animate-ping rounded-full bg-primary/25" /><Sparkles class="relative size-6 animate-pulse" /></span>
-                  <p class="mt-5 font-medium">{{ t('portal.analyzing') }}</p>
-                  <p class="mt-1.5 text-sm text-muted-foreground">{{ t('portal.analyzingHint', { count: smartCandidates.length }) }}</p>
+                  <p class="mt-5 font-medium">{{ t(`portal.smartPhase.${smartPhase}.title`) }}</p>
+                  <Progress v-if="smartPhase === 'staging'" :model-value="smartProgress" class="mt-4 h-1.5" />
+                  <p v-if="smartRun?.provider === 'MOCK'" class="mt-3 text-sm text-muted-foreground">{{ t('portal.mockClassification') }}</p>
+                  <Button v-if="smartPhase === 'analyzing'" variant="outline" class="mt-4" @click="classifyManually">{{ t('portal.classifyManually') }}</Button>
                 </div>
               </div>
 
               <template v-else-if="smartPhase === 'results'">
+                <p v-if="smartManual" role="status" class="mb-4 rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-sm">{{ t('portal.manualClassification') }}</p>
+                <p v-else-if="smartRun?.provider === 'MOCK'" class="mb-4 rounded-lg border bg-muted/40 p-3 text-sm text-muted-foreground">{{ t('portal.mockClassification') }}</p>
                 <p class="mb-4 text-sm text-muted-foreground">{{ t('portal.dragClassificationHint') }}</p>
                 <div class="grid items-start gap-4 lg:grid-cols-2">
                   <section
@@ -511,21 +604,28 @@ onBeforeUnmount(() => timers.forEach(clearTimeout))
                     @dragleave.prevent="smartDragTarget === group.target && (smartDragTarget = null)"
                     @drop.prevent="dropSmartCandidate(group.target, $event)"
                   >
-                    <header class="flex items-center justify-between border-b px-4 py-3"><h3 class="text-sm font-semibold">{{ group.label }}</h3><span class="rounded-full bg-muted px-2 py-0.5 text-xs tabular-nums text-muted-foreground">{{ group.candidates.length }}</span></header>
+                    <header class="flex items-center justify-between gap-2 border-b px-4 py-3"><h3 class="text-sm font-semibold">{{ group.label }}</h3><Button v-if="selectedCandidateId" size="sm" variant="outline" @click="moveSmartCandidate(selectedCandidateId, group.target)">{{ t('portal.moveHere') }}</Button><span v-else class="rounded-full bg-muted px-2 py-0.5 text-xs tabular-nums text-muted-foreground">{{ group.candidates.length }}</span></header>
                     <div class="min-h-24 space-y-2 p-3">
                       <p v-if="!group.candidates.length" class="grid min-h-16 place-items-center text-xs text-muted-foreground">{{ t('portal.dropCategoryHere') }}</p>
                       <article
                         v-for="candidate in group.candidates"
                         :key="candidate.id"
-                        :draggable="true"
-                        class="cursor-grab rounded-xl border bg-background p-3 shadow-sm active:cursor-grabbing"
+                        :draggable="candidate.available"
+                        :tabindex="candidate.available ? 0 : undefined"
+                        :role="candidate.available ? 'button' : undefined"
+                        :aria-pressed="candidate.available ? selectedCandidateId === candidate.id : undefined"
+                        class="rounded-xl border bg-background p-3 shadow-sm"
+                        :class="[candidate.available && 'cursor-grab active:cursor-grabbing', selectedCandidateId === candidate.id && 'ring-2 ring-primary']"
+                        @click="candidate.available && (selectedCandidateId = selectedCandidateId === candidate.id ? null : candidate.id)"
+                        @keydown.enter.prevent="candidate.available && (selectedCandidateId = candidate.id)"
+                        @keydown.space.prevent="candidate.available && (selectedCandidateId = candidate.id)"
                         @dragstart="startSmartDrag(candidate, $event)"
                         @dragend="smartDragTarget = null; draggedCandidateId = null"
                       >
                         <div class="flex items-start gap-2">
                           <GripVertical class="mt-0.5 size-4 shrink-0 text-muted-foreground" />
                           <FileTypeIcon :name="candidate.file.name" :content-type="candidate.file.type" />
-                          <div class="min-w-0 flex-1"><p class="truncate text-sm font-medium" :title="candidate.file.name">{{ candidate.file.name }}</p><p class="mt-1 text-xs text-muted-foreground">{{ formatSize(candidate.file.size) }} · {{ candidate.target === candidate.suggestedTarget ? t('portal.aiConfidence', { confidence: Math.round(candidate.confidence * 100) }) : t('portal.manuallyAdjusted') }}</p></div>
+                          <div class="min-w-0 flex-1"><p class="truncate text-sm font-medium" :title="candidate.file.name">{{ candidate.file.name }}</p><p class="mt-1 text-xs text-muted-foreground">{{ formatSize(candidate.file.size) }}<template v-if="candidate.available && !smartManual"> · {{ candidate.target === candidate.suggestedTarget ? t('portal.aiConfidence', { confidence: Math.round(candidate.confidence * 100) }) : t('portal.manuallyAdjusted') }}</template></p><p v-if="candidate.failure" class="mt-1 text-xs text-destructive">{{ candidate.failure }}</p></div>
                         </div>
                       </article>
                     </div>
@@ -534,16 +634,16 @@ onBeforeUnmount(() => timers.forEach(clearTimeout))
               </template>
 
               <div v-else role="status" class="grid min-h-64 place-items-center">
-                <div class="w-full max-w-sm text-center"><p class="font-medium">{{ t('portal.smartUploading') }}</p><div class="mt-4 flex justify-between text-xs text-muted-foreground"><span>{{ t('portal.uploadProgress') }}</span><span>{{ smartUpload.completed }}/{{ smartUpload.total }}</span></div><Progress :model-value="smartUpload.total ? smartUpload.completed / smartUpload.total * 100 : 0" class="mt-2 h-1.5" /></div>
+                <div class="text-center"><RotateCw class="mx-auto mb-3 size-6 animate-spin" /><p class="font-medium">{{ t('portal.smartPhase.uploading.title') }}</p></div>
               </div>
             </div>
 
             <footer class="flex justify-end gap-2 border-t px-6 py-4">
               <Button type="button" variant="outline" :disabled="smartPhase === 'uploading'" @click="requestSmartClose(false)">{{ t('portal.cancelSmartUpload') }}</Button>
               <Button v-if="smartPhase === 'confirm'" type="button" :disabled="!smartCandidates.length" @click="startSmartAnalysis"><Sparkles class="size-4" />{{ t('portal.startAnalysis') }}</Button>
-              <Button v-else-if="smartPhase === 'analyzing'" type="button" disabled>{{ t('portal.analyzing') }}</Button>
+              <Button v-else-if="['staging', 'scanning', 'analyzing'].includes(smartPhase)" type="button" disabled>{{ t(`portal.smartPhase.${smartPhase}.title`) }}</Button>
               <Button v-else-if="smartPhase === 'results'" type="button" @click="confirmSmartUpload">{{ t('portal.confirmSmartUpload') }}</Button>
-              <Button v-else type="button" disabled>{{ t('portal.smartUploading') }}</Button>
+              <Button v-else type="button" disabled>{{ t('portal.smartPhase.uploading.title') }}</Button>
             </footer>
           </DialogContent>
         </DialogPortal>
@@ -551,6 +651,7 @@ onBeforeUnmount(() => timers.forEach(clearTimeout))
 
       <ConfirmDialog
         :open="smartCancelConfirm"
+        :busy="smartCancelling"
         :title="t('portal.cancelConfirmTitle')"
         :description="t('portal.cancelConfirmHint')"
         :confirm-label="t('portal.confirmCancel')"

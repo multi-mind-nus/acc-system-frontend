@@ -1,5 +1,8 @@
 export const collectionsMessages = {
   en: { collections: {
+    aiPolicy: 'AI assistance', aiPolicyHint: 'Upload classification and post-submission analysis are available. Review decisions remain manual in this release; automatic item review will be enabled later.', aiMode: 'Mode', aiModes: { OFF: 'Manual only', SUGGEST: 'Suggestions only', AUTO_REVIEW: 'Automatic item review' }, aiSatisfyThreshold: 'Accepting documents', aiReturnThreshold: 'Requesting corrections', aiThresholdHint: 'A more cautious setting sends more items to the accountant for review. Final approval always stays with the accountant.', aiThresholdError: 'Choose a review preference for each action.',
+    aiLevels: { moreAutomatic: 'More automatic handling', balanced: 'Balanced (recommended)', moreManual: 'Prefer manual review', existing: 'Keep existing custom setting' },
+    aiLevelHints: { moreAutomatic: 'Allows automatic handling at a lower confidence level; fewer items need manual review.', balanced: 'Requires high confidence before acting; uncertain items go to the accountant.', moreManual: 'Requires an even higher confidence level; more items go to the accountant.', existing: 'This request has a custom rule. Keep it unchanged or choose one of the presets.' },
     title: 'Collections', description: 'Prepare and track monthly document requests.', new: 'New request',
     dashboard: 'Work queue', dashboardHint: 'Requests that need attention across your clients.', openAll: 'View all requests',
     queues: { awaitingReview: 'Awaiting my review', waitingClient: 'Waiting for client', dueSoon: 'Due soon', overdue: 'Overdue' },
@@ -31,6 +34,9 @@ export const collectionsMessages = {
     events: { CREATED: 'Request created', UPDATED: 'Request updated', REQUIREMENT_ADDED: 'Requirement added', FOLLOW_UP_ADDED: 'Follow-up requirement added', REQUIREMENT_UPDATED: 'Requirement updated', REQUIREMENT_REMOVED: 'Requirement removed', PUBLISHED: 'Request published', CANCELLED: 'Request cancelled', COPIED: 'Copied from a previous request', SUBMITTED: 'Client submitted round {round}', REQUIREMENT_REVIEWED: 'Requirement reviewed', CHANGES_REQUESTED: 'Returned to client', APPROVED: 'Approved for bookkeeping', APPROVAL_WITHDRAWN: 'Approval withdrawn', CLOSED: 'Request closed' },
   } },
   'zh-CN': { collections: {
+    aiPolicy: 'AI 辅助', aiPolicyHint: '当前支持上传分类和提交后分析。此版本仍由会计保存审核决定，自动单项审核将在后续启用。', aiMode: '模式', aiModes: { OFF: '仅人工处理', SUGGEST: '仅提供建议', AUTO_REVIEW: '自动单项审核' }, aiSatisfyThreshold: '确认资料符合要求', aiReturnThreshold: '要求客户补交', aiThresholdHint: '设置越谨慎，越多资料会交由会计复核。整单批准始终由会计完成。', aiThresholdError: '请为两种操作选择处理偏好。',
+    aiLevels: { moreAutomatic: '更多自动处理', balanced: '平衡处理（推荐）', moreManual: '优先人工复核', existing: '保留原有自定义设置' },
+    aiLevelHints: { moreAutomatic: '允许在较低把握下自动执行，减少需要人工复核的资料。', balanced: '只有把握很高时才自动执行，不确定的资料交给会计。', moreManual: '需要更高把握才自动执行，更多资料交给会计复核。', existing: '原请求使用独立设置；保留此项不会更改规则，也可以改选其他档位。' },
     title: '资料收集', description: '创建并跟踪每月客户资料清单。', new: '新建请求',
     dashboard: '工作队列', dashboardHint: '集中查看当前需要处理的客户请求。', openAll: '查看全部请求',
     queues: { awaitingReview: '待我审核', waitingClient: '等待客户', dueSoon: '即将到期', overdue: '已逾期' },

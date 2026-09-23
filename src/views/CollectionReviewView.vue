@@ -1,10 +1,11 @@
 <script setup lang="ts">
-import { ArrowLeft, CheckCircle2, Clock3, Download, RotateCcw, Send } from '@lucide/vue'
-import { computed, reactive, ref, watch } from 'vue'
+import { ArrowLeft, CheckCircle2, Clock3, Download, RotateCcw, Send, Sparkles } from '@lucide/vue'
+import { computed, onUnmounted, reactive, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute } from 'vue-router'
 import { readApiError } from '@/api/client'
-import { reviewApi, type IssueCode, type ReviewAction, type ReviewCollection, type ReviewRequirement } from '@/api/review'
+import { reviewApi, type IssueCode, type ReviewAction, type ReviewCollection, type ReviewRequirement, type ReviewRun } from '@/api/review'
+import ReviewAnalysisPanel from '@/components/ReviewAnalysisPanel.vue'
 import ConfirmDialog from '@/components/ConfirmDialog.vue'
 import DocumentPreviewDialog from '@/components/DocumentPreviewDialog.vue'
 import ErrorNotice from '@/components/ErrorNotice.vue'
@@ -24,6 +25,34 @@ const { t, locale } = useI18n()
 const detail = ref<ReviewCollection | null>(null)
 const selectedId = ref('')
 const selectedSubmissionId = ref('')
+const runs = ref<ReviewRun[]>([])
+const runError = ref(false)
+const retrying = ref(false)
+let runTimer: ReturnType<typeof setTimeout> | undefined
+let disposed = false
+const selectedRun = computed(() => runs.value.find(run => run.submissionId === selectedSubmissionId.value))
+
+async function loadRuns() {
+  clearTimeout(runTimer)
+  try {
+    const value = await reviewApi.runs(String(route.params.id))
+    if (disposed) return
+    runs.value = value
+    runError.value = false
+    if (value.some(run => ['QUEUED', 'PROCESSING'].includes(run.status))) runTimer = setTimeout(loadRuns, 2000)
+  } catch { if (!disposed) runError.value = true }
+}
+
+async function retryRun() {
+  if (!selectedRun.value || retrying.value) return
+  retrying.value = true
+  try {
+    await reviewApi.retryRun(String(route.params.id), selectedRun.value.id)
+    await loadRuns()
+  } catch (caught) { actionError.value = readApiError(caught) }
+  finally { retrying.value = false }
+}
+onUnmounted(() => { disposed = true; clearTimeout(runTimer) })
 const loading = ref(true)
 const busy = ref('')
 const error = ref<ReturnType<typeof readApiError> | null>(null)
@@ -49,15 +78,28 @@ const showingOtherDocuments = computed(() => selectedId.value === OTHER_DOCUMENT
 const visibleDocuments = computed(() => (showingOtherDocuments.value ? detail.value?.otherDocuments : selected.value?.documents)?.filter(document => document.submissionId === selectedSubmissionId.value) ?? [])
 const otherDocumentCount = computed(() => detail.value?.otherDocuments.filter(document => document.submissionId === selectedSubmissionId.value).length ?? 0)
 const selectedRoundDecision = computed(() => selected.value?.decisions.find(item => item.submissionId === selectedSubmissionId.value) ?? null)
-const decisionFinal = computed(() => !!selected.value && ['SATISFIED', 'WAIVED'].includes(selected.value.status))
-const incompleteCount = computed(() => detail.value?.requirements.filter(item => item.required && !['SATISFIED', 'WAIVED'].includes(item.status)).length ?? 0)
-const canRequestChanges = computed(() => detail.value?.status === 'IN_REVIEW' && detail.value.requirements.some(item => item.status === 'NEEDS_ACTION'))
+const canEditDecision = computed(() => isLatestRound.value && detail.value?.status === 'IN_REVIEW')
+const selectedFinding = computed(() => selectedRun.value?.status === 'SUCCEEDED' ? selectedRun.value.output?.findings.find(item => item.requirementId === selected.value?.id) ?? null : null)
+const canApplySuggestion = computed(() => canEditDecision.value && !!selectedFinding.value?.suggestedDecision)
+const requestChangeItems = computed(() => {
+  const submissionId = latestSubmission.value?.id
+  if (!submissionId) return []
+  return detail.value?.requirements.flatMap(requirement => {
+    const review = requirement.decisions.find(item => item.submissionId === submissionId && item.decision === 'REQUEST_ACTION')
+    return review?.clientMessage?.trim() ? [{ title: requirement.title, message: review.clientMessage.trim() }] : []
+  }) ?? []
+})
+const unreviewedCount = computed(() => detail.value?.requirements.filter(item => !['NEEDS_ACTION', 'SATISFIED', 'WAIVED'].includes(item.status)).length ?? 0)
+const incompleteCount = computed(() => detail.value?.requirements.filter(item => !['SATISFIED', 'WAIVED'].includes(item.status)).length ?? 0)
+const hasRequestedChanges = computed(() => detail.value?.requirements.some(item => item.status === 'NEEDS_ACTION') ?? false)
+const canRequestChanges = computed(() => detail.value?.status === 'IN_REVIEW' && unreviewedCount.value === 0 && hasRequestedChanges.value)
 const canApprove = computed(() => detail.value?.status === 'IN_REVIEW' && incompleteCount.value === 0)
 const decisionStatuses: Record<ReviewAction, string> = { SATISFY: 'SATISFIED', REQUEST_ACTION: 'NEEDS_ACTION', WAIVE: 'WAIVED' }
 
 function decisionFor(requirement: ReviewRequirement) {
   return requirement.decisions.find(item => item.submissionId === selectedSubmissionId.value)
 }
+
 
 function statusFor(requirement: ReviewRequirement) {
   if (isLatestRound.value) return requirement.status
@@ -92,12 +134,23 @@ function resetForm() {
   success.value = ''
 }
 
+function applySuggestion() {
+  const finding = selectedFinding.value
+  if (!finding?.suggestedDecision) return
+  decision.value = finding.suggestedDecision
+  issueCode.value = finding.suggestedDecision === 'REQUEST_ACTION' ? finding.issueCode ?? undefined : undefined
+  clientMessage.value = finding.clientMessage ?? ''
+  validation.value = ''
+  success.value = ''
+}
+
 async function load() {
   loading.value = true
   error.value = null
   try {
     const value = await reviewApi.get(String(route.params.id))
     detail.value = value
+    void loadRuns()
     if (!value.requirements.some(item => item.id === selectedId.value) && !(selectedId.value === OTHER_DOCUMENTS_ID && value.otherDocuments.length)) selectedId.value = value.requirements[0]?.id ?? ''
     if (!value.submissions.some(item => item.id === selectedSubmissionId.value)) selectedSubmissionId.value = value.submissions.at(-1)?.id ?? ''
   } catch (caught) { error.value = readApiError(caught) }
@@ -160,6 +213,13 @@ function askTransition(value: Transition) {
   transitionReason.value = ''
 }
 
+function generateReturnReason() {
+  transitionReason.value = [
+    t('review.generatedReasonIntro'),
+    ...requestChangeItems.value.map((item, index) => `${index + 1}. ${item.title}: ${item.message}`),
+  ].join('\n')
+}
+
 function keyFor(action: string) {
   return keys[action] ??= crypto.randomUUID()
 }
@@ -191,7 +251,7 @@ load()
 </script>
 
 <template>
-  <section class="space-y-6">
+  <section class="space-y-6 pb-24 lg:pb-20">
     <RouterLink :to="{ name: 'collection-detail', params: { id: route.params.id } }" class="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground"><ArrowLeft class="size-4" />{{ t('review.back') }}</RouterLink>
 
     <div v-if="error" class="space-y-3"><ErrorNotice v-bind="error" /><Button variant="outline" @click="load">{{ t('review.retry') }}</Button></div>
@@ -244,10 +304,15 @@ load()
                 <p v-else class="px-5 py-10 text-center text-sm text-muted-foreground">{{ t('review.noFiles') }}</p>
               </section>
 
+              <div v-if="runError" class="app-panel flex flex-wrap items-center justify-between gap-3 p-5"><p class="text-sm text-muted-foreground">{{ t('review.ai.loadError') }}</p><Button size="sm" variant="outline" @click="loadRuns">{{ t('review.retry') }}</Button></div>
+              <ReviewAnalysisPanel v-else-if="selectedRun" :run="selectedRun" :requirement-id="selected?.id" :document-ids="visibleDocuments.map(document => document.id)" :can-retry="isLatestRound && detail.status === 'IN_REVIEW'" :retrying="retrying" @retry="retryRun" @preview="preview" />
             </main>
 
             <aside v-if="selected" class="app-panel overflow-hidden lg:sticky lg:top-6">
-              <header class="border-b px-5 py-4"><h2 class="text-sm font-semibold">{{ t('review.decision') }}</h2></header>
+              <header class="flex items-center justify-between gap-3 border-b px-5 py-4">
+                <h2 class="text-sm font-semibold">{{ t('review.decision') }}</h2>
+                <Button v-if="canApplySuggestion" size="sm" variant="outline" @click="applySuggestion"><Sparkles class="size-4" />{{ t('review.applySuggestion') }}</Button>
+              </header>
               <div v-if="!isLatestRound" class="space-y-4 p-5">
                 <p class="text-sm leading-6 text-muted-foreground">{{ t('review.historicalRound') }}</p>
                 <template v-if="selectedRoundDecision">
@@ -258,20 +323,20 @@ load()
                 </template>
                 <p v-else class="text-sm text-muted-foreground">{{ t('review.noRoundDecision') }}</p>
               </div>
-              <fieldset v-else :disabled="decisionFinal" class="space-y-5 p-5">
-                <div class="space-y-2"><Label>{{ t('review.action') }}</Label><Select v-model="decision" :disabled="decisionFinal"><SelectTrigger class="w-full"><SelectValue /></SelectTrigger><SelectContent><SelectItem v-for="action in ['SATISFY', 'REQUEST_ACTION', 'WAIVE']" :key="action" :value="action">{{ t(`review.${action}`) }}</SelectItem></SelectContent></Select></div>
-                <div v-if="decision === 'REQUEST_ACTION'" class="space-y-2"><Label>{{ t('review.issue') }}</Label><Select v-model="issueCode" :disabled="decisionFinal"><SelectTrigger class="w-full"><SelectValue :placeholder="t('review.issuePlaceholder')" /></SelectTrigger><SelectContent><SelectItem v-for="code in ['MISSING', 'WRONG_PERIOD', 'ENTITY_MISMATCH', 'UNREADABLE', 'INCOMPLETE', 'OTHER']" :key="code" :value="code">{{ t(`review.issueCodes.${code}`) }}</SelectItem></SelectContent></Select></div>
+              <fieldset v-else :disabled="!canEditDecision" class="space-y-5 p-5">
+                <div class="space-y-2"><Label>{{ t('review.action') }}</Label><Select v-model="decision" :disabled="!canEditDecision"><SelectTrigger class="w-full"><SelectValue /></SelectTrigger><SelectContent><SelectItem v-for="action in ['SATISFY', 'REQUEST_ACTION', 'WAIVE']" :key="action" :value="action">{{ t(`review.${action}`) }}</SelectItem></SelectContent></Select></div>
+                <div v-if="decision === 'REQUEST_ACTION'" class="space-y-2"><Label>{{ t('review.issue') }}</Label><Select v-model="issueCode" :disabled="!canEditDecision"><SelectTrigger class="w-full"><SelectValue :placeholder="t('review.issuePlaceholder')" /></SelectTrigger><SelectContent><SelectItem v-for="code in ['MISSING', 'WRONG_PERIOD', 'ENTITY_MISMATCH', 'UNREADABLE', 'INCOMPLETE', 'OTHER']" :key="code" :value="code">{{ t(`review.issueCodes.${code}`) }}</SelectItem></SelectContent></Select></div>
                 <div class="space-y-2"><Label for="client-message">{{ t('review.clientMessage') }}</Label><textarea id="client-message" v-model="clientMessage" rows="4" class="w-full resize-y rounded-xl border bg-background px-3 py-2 text-sm outline-none focus:ring-3 focus:ring-ring/50" /><p class="text-xs text-muted-foreground">{{ t('review.clientMessageHint') }}</p></div>
                 <div class="space-y-2"><Label for="internal-note">{{ t('review.internalNote') }}</Label><textarea id="internal-note" v-model="internalNote" rows="4" class="w-full resize-y rounded-xl border bg-background px-3 py-2 text-sm outline-none focus:ring-3 focus:ring-ring/50" /><p class="text-xs text-muted-foreground">{{ t('review.internalNoteHint') }}</p></div>
                 <p v-if="validation" class="text-sm text-destructive">{{ validation }}</p><p v-if="success" class="text-sm text-primary">{{ success }}</p>
-                <Button class="w-full" :disabled="decisionFinal || busy === 'decision' || detail.status !== 'IN_REVIEW'" @click="askSave"><CheckCircle2 class="size-4" />{{ busy === 'decision' ? t('review.saving') : t('review.saveDecision') }}</Button>
+                <Button class="w-full" :disabled="!canEditDecision || busy === 'decision'" @click="askSave"><CheckCircle2 class="size-4" />{{ busy === 'decision' ? t('review.saving') : t('review.saveDecision') }}</Button>
               </fieldset>
             </aside>
           </div>
 
-          <section v-if="isLatestRound && (detail.status === 'IN_REVIEW' || (detail.status === 'READY_FOR_BOOKKEEPING' && auth.user?.firmRole === 'FIRM_ADMIN'))" class="app-panel flex flex-wrap items-center gap-3 px-5 py-4">
-            <p v-if="detail.status === 'IN_REVIEW' && incompleteCount" class="mr-auto text-sm text-muted-foreground">{{ t('review.approvalBlocked', { count: incompleteCount }) }}</p><span v-else class="mr-auto" />
-            <Button v-if="canRequestChanges" variant="outline" @click="askTransition('requestChanges')"><Send class="size-4" />{{ t('review.requestChanges') }}</Button>
+          <section v-if="isLatestRound && (detail.status === 'IN_REVIEW' || (detail.status === 'READY_FOR_BOOKKEEPING' && auth.user?.firmRole === 'FIRM_ADMIN'))" class="app-glass fixed right-4 bottom-24 left-4 z-20 mx-auto flex max-w-[1440px] flex-wrap items-center gap-3 rounded-2xl border px-5 py-4 shadow-xl lg:right-10 lg:bottom-6 lg:left-[calc(16rem+2.5rem)]">
+            <p v-if="detail.status === 'IN_REVIEW' && unreviewedCount" class="mr-auto text-sm text-muted-foreground">{{ t('review.reviewPending', { count: unreviewedCount }) }}</p><p v-else-if="detail.status === 'IN_REVIEW' && incompleteCount" class="mr-auto text-sm text-muted-foreground">{{ t('review.approvalBlocked', { count: incompleteCount }) }}</p><span v-else class="mr-auto" />
+            <Button v-if="hasRequestedChanges" variant="outline" :disabled="!canRequestChanges" @click="askTransition('requestChanges')"><Send class="size-4" />{{ t('review.requestChanges') }}</Button>
             <Button v-if="detail.status === 'IN_REVIEW'" :disabled="!canApprove" @click="askTransition('approve')"><CheckCircle2 class="size-4" />{{ t('review.approve') }}</Button>
             <Button v-if="detail.status === 'READY_FOR_BOOKKEEPING' && auth.user?.firmRole === 'FIRM_ADMIN'" variant="outline" @click="askTransition('reopen')"><RotateCcw class="size-4" />{{ t('review.reopen') }}</Button>
           </section>
@@ -281,10 +346,16 @@ load()
           </section>
       </div>
 
-      <ConfirmDialog v-model:open="confirmDecision" :title="t('review.WAIVE')" :description="t('review.waiveReason')" :busy="busy === 'decision'" @confirm="saveDecision" />
+      <ConfirmDialog v-model:open="confirmDecision" :title="t('review.waiveConfirmTitle')" :description="t('review.waiveConfirmHint')" :busy="busy === 'decision'" @confirm="saveDecision" />
       <DocumentPreviewDialog v-if="previewDocument" v-model:open="previewOpen" :name="previewDocument.name" :content-type="previewDocument.contentType" :load="() => reviewApi.download(previewDocument!.id)" />
       <ConfirmDialog v-if="transition" :open="true" :title="t(`review.${transition}Title`)" :description="t(`review.${transition}Hint`)" :busy="busy === transition" :confirm-disabled="transition !== 'approve' && !transitionReason.trim()" :confirm-label="t('review.confirm')" :cancel-label="t('review.cancel')" @update:open="!$event && (transition = null)" @confirm="runTransition">
-        <div v-if="transition !== 'approve'" class="mt-4 space-y-2"><Label for="transition-reason">{{ t('review.reason') }}</Label><textarea id="transition-reason" v-model="transitionReason" rows="3" :placeholder="t('review.reasonPlaceholder')" class="w-full resize-y rounded-xl border bg-background px-3 py-2 text-sm outline-none focus:ring-3 focus:ring-ring/50" /></div>
+        <div v-if="transition !== 'approve'" class="mt-4 space-y-2">
+          <div class="flex items-center justify-between gap-3">
+            <Label for="transition-reason">{{ t('review.reason') }}</Label>
+            <Button v-if="transition === 'requestChanges'" size="sm" variant="outline" :disabled="!requestChangeItems.length" @click="generateReturnReason"><Sparkles class="size-4" />{{ t('review.generateReason') }}</Button>
+          </div>
+          <textarea id="transition-reason" v-model="transitionReason" rows="4" :placeholder="t('review.reasonPlaceholder')" class="w-full resize-y rounded-xl border bg-background px-3 py-2 text-sm outline-none focus:ring-3 focus:ring-ring/50" />
+        </div>
       </ConfirmDialog>
     </template>
   </section>
