@@ -55,13 +55,14 @@ describe('API boundary', () => {
 
     await reviewApi.review('requirement-1', {
       version: 2, submissionId: 'submission-1', decision: 'SATISFY',
+      evidence: [{ documentId: 'document-1', relation: 'SUPPORTS' }],
     })
     await reviewApi.approve('request-1', 3, 'approve-key')
 
     expect(requests).toEqual([
       {
         url: '/requirements/requirement-1/review', key: undefined,
-        body: { version: 2, submission_id: 'submission-1', decision: 'SATISFY' },
+        body: { version: 2, submission_id: 'submission-1', decision: 'SATISFY', evidence: [{ document_id: 'document-1', relation: 'SUPPORTS' }] },
       },
       {
         url: '/collection-requests/request-1/approve', key: 'approve-key',

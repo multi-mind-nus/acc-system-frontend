@@ -95,6 +95,7 @@ it('stages files before classification, cancels without merging, and supports ma
       smartCategories: Array<{ target: string }>
       requirementEditable: (requirement: PortalCollectionDetail['requirements'][number]) => boolean
       requirementHasIssue: (requirement: PortalCollectionDetail['requirements'][number]) => boolean
+      collectionStatus: string
       prepareSmartUpload: (files: File[]) => void
       startSmartAnalysis: () => Promise<void>
       moveSmartCandidate: (candidateId: string, target: string) => void
@@ -103,6 +104,11 @@ it('stages files before classification, cancels without merging, and supports ma
       confirmSmartUpload: () => Promise<void>
     } }).setupState
     await vi.waitFor(() => expect(state.loading).toBe(false))
+    state.detail.status = 'IN_REVIEW'
+    state.detail.reviewStatus = 'AI_PASSED'
+    expect(state.collectionStatus).toBe('AI_PASSED')
+    state.detail.status = 'OPEN'
+    state.detail.reviewStatus = null
     state.prepareSmartUpload([
       new File(['statement'], 'bank-statement.pdf', { type: 'application/pdf' }),
       new File(['notes'], 'notes.pdf', { type: 'application/pdf' }),

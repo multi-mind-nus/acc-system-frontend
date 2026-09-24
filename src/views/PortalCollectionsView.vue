@@ -3,7 +3,7 @@ import { ArrowUpRight, ClipboardList } from '@lucide/vue'
 import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
-import type { CollectionStatus } from '@/api/collections'
+import type { CollectionFilterStatus } from '@/api/collections'
 import { portalApi, type PortalCollectionSummary } from '@/api/portal'
 import { readApiError } from '@/api/client'
 import ErrorNotice from '@/components/ErrorNotice.vue'
@@ -22,7 +22,7 @@ const items = ref<PortalCollectionSummary[]>([])
 const loading = ref(true)
 const error = ref<ReturnType<typeof readApiError> | null>(null)
 const filters = ref({ client: 'all', period: '', status: 'all', sort: 'updated_at:desc' })
-const statuses: CollectionStatus[] = ['OPEN', 'IN_REVIEW', 'CHANGES_REQUESTED', 'READY_FOR_BOOKKEEPING', 'CLOSED', 'CANCELLED']
+const statuses: CollectionFilterStatus[] = ['OPEN', 'IN_REVIEW', 'AI_PASSED', 'CHANGES_REQUESTED', 'READY_FOR_BOOKKEEPING', 'CLOSED', 'CANCELLED']
 const clients = computed(() => auth.user?.clientMemberships ?? [])
 let generation = 0
 let syncingFilters = false
@@ -53,7 +53,7 @@ async function load() {
     const result = await portalApi.list({
       clientId: filters.value.client === 'all' ? undefined : filters.value.client,
       period: filters.value.period ? `${filters.value.period}-01` : undefined,
-      status: filters.value.status === 'all' ? undefined : filters.value.status as CollectionStatus,
+      status: filters.value.status === 'all' ? undefined : filters.value.status as CollectionFilterStatus,
       sort,
       order,
     })
@@ -66,7 +66,7 @@ function syncFilters() {
   const next = {
     client: typeof route.query.client === 'string' ? route.query.client : 'all',
     period: typeof route.query.period === 'string' ? route.query.period : '',
-    status: statuses.includes(route.query.status as CollectionStatus) ? String(route.query.status) : 'all',
+    status: statuses.includes(route.query.status as CollectionFilterStatus) ? String(route.query.status) : 'all',
     sort: typeof route.query.sort === 'string' && ['updated_at:desc', 'due_at:asc', 'due_at:desc', 'period:desc'].includes(route.query.sort) ? route.query.sort : 'updated_at:desc',
   }
   if (JSON.stringify(next) === JSON.stringify(filters.value)) return
@@ -119,7 +119,7 @@ watch(filters, () => { if (!syncingFilters) navigate() }, { deep: true, flush: '
         <div class="min-w-0">
           <div class="flex flex-wrap items-center gap-2.5">
             <h2 class="text-base font-semibold">{{ formatPeriod(item.period) }}</h2>
-            <StatusBadge :status="item.status" translation-prefix="collections.status" />
+            <StatusBadge :status="item.reviewStatus === 'AI_PASSED' ? 'AI_PASSED' : item.status" translation-prefix="collections.status" />
           </div>
           <p class="mt-1.5 text-sm text-muted-foreground">{{ item.clientName }} · {{ t('portal.due', { date: formatDate(item.dueAt) }) }}</p>
           <p class="mt-1 text-xs text-muted-foreground">{{ t('portal.lastUpdated') }} · {{ formatDateTime(item.updatedAt) }}</p>

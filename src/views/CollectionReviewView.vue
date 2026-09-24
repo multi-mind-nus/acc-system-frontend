@@ -35,11 +35,18 @@ const selectedRun = computed(() => runs.value.find(run => run.submissionId === s
 async function loadRuns() {
   clearTimeout(runTimer)
   try {
+    const hadRuns = runs.value.length > 0
+    const hadPending = runs.value.some(run => ['QUEUED', 'PROCESSING'].includes(run.status))
     const value = await reviewApi.runs(String(route.params.id))
     if (disposed) return
     runs.value = value
     runError.value = false
-    if (value.some(run => ['QUEUED', 'PROCESSING'].includes(run.status))) runTimer = setTimeout(loadRuns, 2000)
+    const hasPending = value.some(run => ['QUEUED', 'PROCESSING'].includes(run.status))
+    if (hasPending) runTimer = setTimeout(loadRuns, 2000)
+    else if (hadPending || !hadRuns) {
+      detail.value = await reviewApi.get(String(route.params.id))
+      resetForm()
+    }
   } catch { if (!disposed) runError.value = true }
 }
 
@@ -62,6 +69,7 @@ const decision = ref<ReviewAction>('SATISFY')
 const issueCode = ref<IssueCode | undefined>()
 const clientMessage = ref('')
 const internalNote = ref('')
+const selectedEvidenceIds = ref<string[]>([])
 const validation = ref('')
 const confirmDecision = ref(false)
 const transition = ref<Transition | null>(null)
@@ -80,6 +88,18 @@ const otherDocumentCount = computed(() => detail.value?.otherDocuments.filter(do
 const selectedRoundDecision = computed(() => selected.value?.decisions.find(item => item.submissionId === selectedSubmissionId.value) ?? null)
 const canEditDecision = computed(() => isLatestRound.value && detail.value?.status === 'IN_REVIEW')
 const selectedFinding = computed(() => selectedRun.value?.status === 'SUCCEEDED' ? selectedRun.value.output?.findings.find(item => item.requirementId === selected.value?.id) ?? null : null)
+const evidenceCandidates = computed(() => {
+  const candidates = new Map<string, { id: string; name: string; contentType: string; scope: 'CURRENT' | 'HISTORY' }>()
+  for (const document of visibleDocuments.value) candidates.set(document.id, { id: document.id, name: document.name, contentType: document.contentType, scope: 'CURRENT' })
+  const extraIds = new Set([
+    ...(selectedFinding.value?.evidence.map(value => value.documentId) ?? []),
+    ...(selectedRoundDecision.value?.evidence.map(value => value.documentId) ?? []),
+  ])
+  for (const document of selectedRun.value?.documents ?? []) {
+    if (extraIds.has(document.id)) candidates.set(document.id, document)
+  }
+  return [...candidates.values()]
+})
 const canApplySuggestion = computed(() => canEditDecision.value && !!selectedFinding.value?.suggestedDecision)
 const requestChangeItems = computed(() => {
   const submissionId = latestSubmission.value?.id
@@ -94,6 +114,7 @@ const incompleteCount = computed(() => detail.value?.requirements.filter(item =>
 const hasRequestedChanges = computed(() => detail.value?.requirements.some(item => item.status === 'NEEDS_ACTION') ?? false)
 const canRequestChanges = computed(() => detail.value?.status === 'IN_REVIEW' && unreviewedCount.value === 0 && hasRequestedChanges.value)
 const canApprove = computed(() => detail.value?.status === 'IN_REVIEW' && incompleteCount.value === 0)
+const aiRoundPassed = computed(() => canApprove.value && !!selectedRun.value?.output?.findings.length && selectedRun.value.output.findings.every(item => item.suggestedDecision === 'SATISFY' && item.manualReasons.length === 0))
 const decisionStatuses: Record<ReviewAction, string> = { SATISFY: 'SATISFIED', REQUEST_ACTION: 'NEEDS_ACTION', WAIVE: 'WAIVED' }
 
 function decisionFor(requirement: ReviewRequirement) {
@@ -102,7 +123,9 @@ function decisionFor(requirement: ReviewRequirement) {
 
 
 function statusFor(requirement: ReviewRequirement) {
-  if (isLatestRound.value) return requirement.status
+  if (isLatestRound.value) {
+    return requirement.status
+  }
   const decision = decisionFor(requirement)
   return decision ? decisionStatuses[decision.decision] : 'PENDING'
 }
@@ -130,6 +153,7 @@ function resetForm() {
   issueCode.value = requirement?.issueCode ?? undefined
   clientMessage.value = requirement?.clientMessage ?? ''
   internalNote.value = requirement?.internalNote ?? ''
+  selectedEvidenceIds.value = selectedRoundDecision.value?.evidence.map(value => value.documentId) ?? []
   validation.value = ''
   success.value = ''
 }
@@ -140,6 +164,7 @@ function applySuggestion() {
   decision.value = finding.suggestedDecision
   issueCode.value = finding.suggestedDecision === 'REQUEST_ACTION' ? finding.issueCode ?? undefined : undefined
   clientMessage.value = finding.clientMessage ?? ''
+  selectedEvidenceIds.value = finding.evidence.map(value => value.documentId)
   validation.value = ''
   success.value = ''
 }
@@ -200,6 +225,10 @@ async function saveDecision() {
       issueCode: decision.value === 'REQUEST_ACTION' ? issueCode.value : undefined,
       clientMessage: clientMessage.value.trim() || undefined,
       internalNote: internalNote.value.trim() || undefined,
+      evidence: selectedEvidenceIds.value.map(documentId => ({
+        documentId,
+        relation: decision.value === 'SATISFY' ? 'SUPPORTS' : decision.value === 'REQUEST_ACTION' ? 'CONTRADICTS' : 'REFERENCE',
+      })),
     })
     confirmDecision.value = false
     success.value = t('review.saved')
@@ -259,7 +288,7 @@ load()
     <template v-else-if="detail">
       <header class="flex flex-wrap items-start justify-between gap-4">
         <div><p class="text-sm text-muted-foreground">{{ detail.clientName }} · {{ formatPeriod(detail.period) }}</p><h1 class="mt-1 text-[32px] leading-tight font-semibold tracking-[-0.025em]">{{ t('review.title') }}</h1></div>
-        <StatusBadge :status="detail.status" translation-prefix="collections.status" />
+        <StatusBadge :status="aiRoundPassed ? 'AI_PASSED' : detail.status" translation-prefix="collections.status" />
       </header>
 
       <ErrorNotice v-if="actionError" v-bind="actionError" />
@@ -310,7 +339,7 @@ load()
 
             <aside v-if="selected" class="app-panel overflow-hidden lg:sticky lg:top-6">
               <header class="flex items-center justify-between gap-3 border-b px-5 py-4">
-                <h2 class="text-sm font-semibold">{{ t('review.decision') }}</h2>
+                <div class="flex items-center gap-2"><h2 class="text-sm font-semibold">{{ t('review.decision') }}</h2><span v-if="selectedRoundDecision?.source === 'AI'" class="rounded-full bg-primary/10 px-2 py-1 text-[11px] font-medium text-primary">{{ t('review.aiDecision') }}</span></div>
                 <Button v-if="canApplySuggestion" size="sm" variant="outline" @click="applySuggestion"><Sparkles class="size-4" />{{ t('review.applySuggestion') }}</Button>
               </header>
               <div v-if="!isLatestRound" class="space-y-4 p-5">
@@ -328,6 +357,14 @@ load()
                 <div v-if="decision === 'REQUEST_ACTION'" class="space-y-2"><Label>{{ t('review.issue') }}</Label><Select v-model="issueCode" :disabled="!canEditDecision"><SelectTrigger class="w-full"><SelectValue :placeholder="t('review.issuePlaceholder')" /></SelectTrigger><SelectContent><SelectItem v-for="code in ['MISSING', 'WRONG_PERIOD', 'ENTITY_MISMATCH', 'UNREADABLE', 'INCOMPLETE', 'OTHER']" :key="code" :value="code">{{ t(`review.issueCodes.${code}`) }}</SelectItem></SelectContent></Select></div>
                 <div class="space-y-2"><Label for="client-message">{{ t('review.clientMessage') }}</Label><textarea id="client-message" v-model="clientMessage" rows="4" class="w-full resize-y rounded-xl border bg-background px-3 py-2 text-sm outline-none focus:ring-3 focus:ring-ring/50" /><p class="text-xs text-muted-foreground">{{ t('review.clientMessageHint') }}</p></div>
                 <div class="space-y-2"><Label for="internal-note">{{ t('review.internalNote') }}</Label><textarea id="internal-note" v-model="internalNote" rows="4" class="w-full resize-y rounded-xl border bg-background px-3 py-2 text-sm outline-none focus:ring-3 focus:ring-ring/50" /><p class="text-xs text-muted-foreground">{{ t('review.internalNoteHint') }}</p></div>
+                <div v-if="evidenceCandidates.length" class="space-y-2">
+                  <div><Label>{{ t('review.evidence') }}</Label><p class="mt-1 text-xs text-muted-foreground">{{ t('review.evidenceHint') }}</p></div>
+                  <label v-for="document in evidenceCandidates" :key="document.id" class="flex cursor-pointer items-center gap-3 rounded-xl border p-3 transition-colors" :class="selectedEvidenceIds.includes(document.id) ? 'border-primary/50 bg-primary/5' : ''">
+                    <input v-model="selectedEvidenceIds" type="checkbox" :value="document.id" class="size-4 shrink-0 accent-primary" />
+                    <FileTypeIcon :name="document.name" :content-type="document.contentType" />
+                    <span class="min-w-0 flex-1"><span class="block truncate text-sm" :title="document.name">{{ document.name }}</span><span class="text-xs text-muted-foreground">{{ t(`review.ai.scopes.${document.scope}`) }}</span></span>
+                  </label>
+                </div>
                 <p v-if="validation" class="text-sm text-destructive">{{ validation }}</p><p v-if="success" class="text-sm text-primary">{{ success }}</p>
                 <Button class="w-full" :disabled="!canEditDecision || busy === 'decision'" @click="askSave"><CheckCircle2 class="size-4" />{{ busy === 'decision' ? t('review.saving') : t('review.saveDecision') }}</Button>
               </fieldset>
@@ -335,7 +372,7 @@ load()
           </div>
 
           <section v-if="isLatestRound && (detail.status === 'IN_REVIEW' || (detail.status === 'READY_FOR_BOOKKEEPING' && auth.user?.firmRole === 'FIRM_ADMIN'))" class="app-glass fixed right-4 bottom-24 left-4 z-20 mx-auto flex max-w-[1440px] flex-wrap items-center gap-3 rounded-2xl border px-5 py-4 shadow-xl lg:right-10 lg:bottom-6 lg:left-[calc(16rem+2.5rem)]">
-            <p v-if="detail.status === 'IN_REVIEW' && unreviewedCount" class="mr-auto text-sm text-muted-foreground">{{ t('review.reviewPending', { count: unreviewedCount }) }}</p><p v-else-if="detail.status === 'IN_REVIEW' && incompleteCount" class="mr-auto text-sm text-muted-foreground">{{ t('review.approvalBlocked', { count: incompleteCount }) }}</p><span v-else class="mr-auto" />
+            <p v-if="detail.status === 'IN_REVIEW' && unreviewedCount" class="mr-auto text-sm text-muted-foreground">{{ t('review.reviewPending', { count: unreviewedCount }) }}</p><p v-else-if="detail.status === 'IN_REVIEW' && incompleteCount" class="mr-auto text-sm text-muted-foreground">{{ t('review.approvalBlocked', { count: incompleteCount }) }}</p><p v-else-if="aiRoundPassed" class="mr-auto text-sm text-muted-foreground">{{ t('review.aiRoundPassed') }}</p><span v-else class="mr-auto" />
             <Button v-if="hasRequestedChanges" variant="outline" :disabled="!canRequestChanges" @click="askTransition('requestChanges')"><Send class="size-4" />{{ t('review.requestChanges') }}</Button>
             <Button v-if="detail.status === 'IN_REVIEW'" :disabled="!canApprove" @click="askTransition('approve')"><CheckCircle2 class="size-4" />{{ t('review.approve') }}</Button>
             <Button v-if="detail.status === 'READY_FOR_BOOKKEEPING' && auth.user?.firmRole === 'FIRM_ADMIN'" variant="outline" @click="askTransition('reopen')"><RotateCcw class="size-4" />{{ t('review.reopen') }}</Button>

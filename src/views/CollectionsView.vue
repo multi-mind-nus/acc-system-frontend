@@ -5,7 +5,7 @@ import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
 import { accountsApi, type ClientAccount, type Page, type UserAccount } from '@/api/accounts'
 import { readApiError } from '@/api/client'
-import { collectionsApi, type CollectionStatus, type CollectionSummary } from '@/api/collections'
+import { collectionsApi, type CollectionFilterStatus, type CollectionSummary } from '@/api/collections'
 import CollectionDetailPanel from '@/components/CollectionDetailPanel.vue'
 import DateRangePicker from '@/components/DateRangePicker.vue'
 import ErrorNotice from '@/components/ErrorNotice.vue'
@@ -28,7 +28,7 @@ const assignees = ref<UserAccount[]>([])
 const loading = ref(false)
 const error = ref<ReturnType<typeof readApiError> | null>(null)
 const filters = ref({ client: 'all', period: '', status: 'all', assignee: 'all', dueFrom: '', dueTo: '', sort: 'updated_at:desc' })
-const statuses: CollectionStatus[] = ['DRAFT', 'OPEN', 'IN_REVIEW', 'CHANGES_REQUESTED', 'READY_FOR_BOOKKEEPING', 'CLOSED', 'CANCELLED']
+const statuses: CollectionFilterStatus[] = ['DRAFT', 'OPEN', 'IN_REVIEW', 'AI_PASSED', 'CHANGES_REQUESTED', 'READY_FOR_BOOKKEEPING', 'CLOSED', 'CANCELLED']
 let generation = 0
 let syncingFilters = false
 
@@ -48,7 +48,7 @@ function syncFilters() {
   const next = {
     client: typeof route.query.client === 'string' ? route.query.client : 'all',
     period: typeof route.query.period === 'string' ? route.query.period : '',
-    status: statuses.includes(route.query.status as CollectionStatus) ? String(route.query.status) : 'all',
+    status: statuses.includes(route.query.status as CollectionFilterStatus) ? String(route.query.status) : 'all',
     assignee: typeof route.query.assignee === 'string' ? route.query.assignee : 'all',
     dueFrom: typeof route.query.dueFrom === 'string' ? route.query.dueFrom : '',
     dueTo: typeof route.query.dueTo === 'string' ? route.query.dueTo : '',
@@ -83,7 +83,7 @@ async function load() {
       page: page.value, pageSize: 20,
       clientId: filters.value.client === 'all' ? undefined : filters.value.client,
       period: filters.value.period ? `${filters.value.period}-01` : undefined,
-      status: filters.value.status === 'all' ? undefined : filters.value.status as CollectionStatus,
+      status: filters.value.status === 'all' ? undefined : filters.value.status as CollectionFilterStatus,
       assigneeId: filters.value.assignee === 'all' ? undefined : filters.value.assignee,
       dueFrom: filters.value.dueFrom ? new Date(`${filters.value.dueFrom}T00:00:00`).toISOString() : undefined,
       dueTo: filters.value.dueTo ? new Date(`${filters.value.dueTo}T23:59:59`).toISOString() : undefined,
@@ -136,10 +136,10 @@ loadOptions()
         <p v-else-if="loading" role="status" class="p-8 text-sm text-muted-foreground">{{ t('collections.loading') }}</p>
         <template v-else>
           <div v-if="result.items.length" class="divide-y md:hidden">
-            <RouterLink v-for="item in result.items" :key="item.id" :to="{ name: 'collection-detail', params: { id: item.id }, query: route.query }" class="block px-5 py-4 active:bg-muted/50"><span class="flex items-start justify-between gap-3"><span class="min-w-0 font-medium">{{ item.clientName }}</span><StatusBadge :status="item.status" translation-prefix="collections.status" /></span><span class="mt-2 block text-xs text-muted-foreground">{{ formatPeriod(item.period) }} · {{ formatDate(item.dueAt) }} · {{ item.assigneeName }}</span><span class="mt-1 block text-xs text-muted-foreground">{{ t('collections.lastUpdated') }} · {{ formatDateTime(item.updatedAt) }}</span></RouterLink>
+            <RouterLink v-for="item in result.items" :key="item.id" :to="{ name: 'collection-detail', params: { id: item.id }, query: route.query }" class="block px-5 py-4 active:bg-muted/50"><span class="flex items-start justify-between gap-3"><span class="min-w-0 font-medium">{{ item.clientName }}</span><StatusBadge :status="item.reviewStatus === 'AI_PASSED' ? 'AI_PASSED' : item.status" translation-prefix="collections.status" /></span><span class="mt-2 block text-xs text-muted-foreground">{{ formatPeriod(item.period) }} · {{ formatDate(item.dueAt) }} · {{ item.assigneeName }}</span><span class="mt-1 block text-xs text-muted-foreground">{{ t('collections.lastUpdated') }} · {{ formatDateTime(item.updatedAt) }}</span></RouterLink>
           </div>
           <div v-if="result.items.length" class="hidden overflow-x-auto md:block">
-            <table class="w-full min-w-[880px] text-left text-sm"><thead class="border-b bg-muted/35 text-xs text-muted-foreground"><tr><th class="px-5 py-3.5 font-medium">{{ t('collections.client') }}</th><th class="px-5 py-3.5 font-medium">{{ t('collections.period') }}</th><th class="px-5 py-3.5 font-medium">{{ t('collections.dueDate') }}</th><th class="px-5 py-3.5 font-medium">{{ t('collections.assignee') }}</th><th class="px-5 py-3.5 font-medium">{{ t('collections.lastUpdated') }}</th><th class="px-5 py-3.5 font-medium">{{ t('collections.statusLabel') }}</th></tr></thead><tbody class="divide-y"><tr v-for="item in result.items" :key="item.id" class="group hover:bg-muted/25" :class="selected === item.id ? 'bg-muted/40' : ''"><td class="px-5 py-4"><RouterLink class="inline-flex items-center gap-2 font-medium min-[1760px]:hidden" :to="{ name: 'collection-detail', params: { id: item.id }, query: route.query }">{{ item.clientName }}<ArrowUpRight class="size-3.5" /></RouterLink><RouterLink class="hidden font-medium min-[1760px]:inline" :to="{ query: { ...route.query, selected: item.id } }">{{ item.clientName }}</RouterLink></td><td class="whitespace-nowrap px-5 py-4">{{ formatPeriod(item.period) }}</td><td class="whitespace-nowrap px-5 py-4 text-muted-foreground">{{ formatDate(item.dueAt) }}</td><td class="whitespace-nowrap px-5 py-4 text-muted-foreground">{{ item.assigneeName }}</td><td class="whitespace-nowrap px-5 py-4 text-muted-foreground">{{ formatDateTime(item.updatedAt) }}</td><td class="px-5 py-4"><StatusBadge :status="item.status" translation-prefix="collections.status" /></td></tr></tbody></table>
+            <table class="w-full min-w-[880px] text-left text-sm"><thead class="border-b bg-muted/35 text-xs text-muted-foreground"><tr><th class="px-5 py-3.5 font-medium">{{ t('collections.client') }}</th><th class="px-5 py-3.5 font-medium">{{ t('collections.period') }}</th><th class="px-5 py-3.5 font-medium">{{ t('collections.dueDate') }}</th><th class="px-5 py-3.5 font-medium">{{ t('collections.assignee') }}</th><th class="px-5 py-3.5 font-medium">{{ t('collections.lastUpdated') }}</th><th class="px-5 py-3.5 font-medium">{{ t('collections.statusLabel') }}</th></tr></thead><tbody class="divide-y"><tr v-for="item in result.items" :key="item.id" class="group hover:bg-muted/25" :class="selected === item.id ? 'bg-muted/40' : ''"><td class="px-5 py-4"><RouterLink class="inline-flex items-center gap-2 font-medium min-[1760px]:hidden" :to="{ name: 'collection-detail', params: { id: item.id }, query: route.query }">{{ item.clientName }}<ArrowUpRight class="size-3.5" /></RouterLink><RouterLink class="hidden font-medium min-[1760px]:inline" :to="{ query: { ...route.query, selected: item.id } }">{{ item.clientName }}</RouterLink></td><td class="whitespace-nowrap px-5 py-4">{{ formatPeriod(item.period) }}</td><td class="whitespace-nowrap px-5 py-4 text-muted-foreground">{{ formatDate(item.dueAt) }}</td><td class="whitespace-nowrap px-5 py-4 text-muted-foreground">{{ item.assigneeName }}</td><td class="whitespace-nowrap px-5 py-4 text-muted-foreground">{{ formatDateTime(item.updatedAt) }}</td><td class="px-5 py-4"><StatusBadge :status="item.reviewStatus === 'AI_PASSED' ? 'AI_PASSED' : item.status" translation-prefix="collections.status" /></td></tr></tbody></table>
           </div>
           <div v-else class="px-6 py-16 text-center"><ClipboardList class="mx-auto mb-4 size-7 text-muted-foreground" /><h2 class="text-base font-medium">{{ t(Object.values(filters).some(value => value && value !== 'all' && value !== 'updated_at:desc') ? 'collections.noResults' : 'collections.noRequests') }}</h2><p class="mx-auto mt-2 max-w-sm text-sm leading-6 text-muted-foreground">{{ t(Object.values(filters).some(value => value && value !== 'all' && value !== 'updated_at:desc') ? 'collections.noResultsHint' : 'collections.noRequestsHint') }}</p></div>
         </template>

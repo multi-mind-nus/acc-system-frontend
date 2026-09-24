@@ -29,7 +29,7 @@ it('defaults to the latest submission and filters every requirement to the selec
       id: 'requirement', type: 'BANK_STATEMENT', title: 'Bank statement', required: true,
       status: 'NEEDS_ACTION', version: 1, issueCode: 'WRONG_PERIOD', clientMessage: 'Saved review message.', internalNote: null, decisions: [{
         id: 'decision', submissionId: 'round-2', decision: 'REQUEST_ACTION', issueCode: 'WRONG_PERIOD', clientMessage: 'Saved review message.', internalNote: null,
-        createdBy: 'accountant', createdByName: 'Accountant', createdAt: '2026-09-20T00:00:00Z', evidence: [],
+        createdBy: 'accountant', source: 'HUMAN', aiRunId: null, createdByName: 'Accountant', createdAt: '2026-09-20T00:00:00Z', evidence: [],
       }],
       documents: [
         { id: 'old', linkId: 'old-link', submissionId: 'round-1', roundNo: 1, name: 'old.pdf', contentType: 'application/pdf', sizeBytes: 10, status: 'AVAILABLE', documentType: 'BANK_STATEMENT', relation: 'SUPPORTS', createdAt: '2026-09-10T00:00:00Z' },
@@ -42,8 +42,8 @@ it('defaults to the latest submission and filters every requirement to the selec
   }
   vi.spyOn(reviewApi, 'get').mockResolvedValue(detail)
   const run = (id: string, submissionId: string): ReviewRun => ({
-    id, submissionId, status: 'SUCCEEDED', modelVersion: 'mock-reviewer-v1', error: null, createdAt: '', finishedAt: '', documents: [], searches: [],
-    output: { findings: submissionId === 'round-2' ? [{ requirementId: 'requirement', action: 'ASK_CLIENT', suggestedDecision: 'REQUEST_ACTION', issueCode: 'WRONG_PERIOD', confidence: 0.99, entityCheck: 'MATCH', periodCheck: 'MISMATCH', explanation: '', clientMessage: 'Please upload the correct period.', evidence: [], amounts: [], amountsValid: true, manualReasons: [] }] : [], extractions: [] },
+    id, submissionId, status: 'SUCCEEDED', modelVersion: 'mock-reviewer-v1', error: null, createdAt: '', finishedAt: '', documents: submissionId === 'round-2' ? [{ id: 'new', name: 'new.pdf', contentType: 'application/pdf', scope: 'CURRENT' }] : [], searches: [],
+    output: { findings: submissionId === 'round-2' ? [{ requirementId: 'requirement', action: 'ASK_CLIENT', suggestedDecision: 'REQUEST_ACTION', issueCode: 'WRONG_PERIOD', confidence: 0.99, entityCheck: 'MATCH', periodCheck: 'MISMATCH', explanation: '', clientMessage: 'Please upload the correct period.', evidence: [{ documentId: 'new', relation: 'CONTRADICTS', reason: 'Wrong period' }], amounts: [], amountsValid: true, manualReasons: [], autoApplied: false }] : [], extractions: [] },
   })
   vi.spyOn(reviewApi, 'runs').mockResolvedValue([run('new-run', 'round-2'), run('old-run', 'round-1')])
   const pinia = createPinia()
@@ -55,7 +55,7 @@ it('defaults to the latest submission and filters every requirement to the selec
   app.provide(ssrContextKey, {})
   app.mount({})
   try {
-    const state = (app._instance as unknown as { setupState: { detail: ReviewCollection; selectedId: string; selectedSubmissionId: string; selectedRun: ReviewRun; isLatestRound: boolean; canEditDecision: boolean; canRequestChanges: boolean; unreviewedCount: number; canApplySuggestion: boolean; decision: string; issueCode?: string; clientMessage: string; internalNote: string; transitionReason: string; applySuggestion: () => void; generateReturnReason: () => void; visibleDocuments: Array<{ id: string }> } }).setupState
+    const state = (app._instance as unknown as { setupState: { detail: ReviewCollection; selectedId: string; selectedSubmissionId: string; selectedRun: ReviewRun; isLatestRound: boolean; canEditDecision: boolean; canRequestChanges: boolean; unreviewedCount: number; canApplySuggestion: boolean; decision: string; issueCode?: string; clientMessage: string; internalNote: string; selectedEvidenceIds: string[]; transitionReason: string; applySuggestion: () => void; generateReturnReason: () => void; statusFor: (requirement: ReviewCollection['requirements'][number]) => string; visibleDocuments: Array<{ id: string }> } }).setupState
     await vi.waitFor(() => expect(state.selectedSubmissionId).toBe('round-2'))
     expect(state.isLatestRound).toBe(true)
     expect(state.selectedRun.id).toBe('new-run')
@@ -68,6 +68,10 @@ it('defaults to the latest submission and filters every requirement to the selec
     state.internalNote = 'Keep this note'
     state.applySuggestion()
     expect([state.decision, state.issueCode, state.clientMessage, state.internalNote]).toEqual(['REQUEST_ACTION', 'WRONG_PERIOD', 'Please upload the correct period.', 'Keep this note'])
+    expect(state.selectedEvidenceIds).toEqual(['new'])
+    state.detail.requirements[0]!.status = 'RECEIVED'
+    state.detail.requirements[0]!.status = 'SATISFIED'
+    expect(state.statusFor(state.detail.requirements[0]!)).toBe('SATISFIED')
     state.generateReturnReason()
     expect(state.transitionReason).toContain('1. Bank statement: Saved review message.')
     expect(state.transitionReason).not.toContain('Please upload the correct period.')

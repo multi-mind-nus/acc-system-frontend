@@ -239,7 +239,6 @@ watch([() => form.clientId, () => form.period], () => {
             </Select>
             <p :id="`${field.key}-hint`" class="text-xs leading-5 text-muted-foreground">{{ t(`collections.aiLevelHints.${aiThresholdLevel(form[field.key])}`) }}</p>
           </div>
-          <p class="text-xs text-muted-foreground xl:col-span-3">{{ t('collections.aiThresholdHint') }}</p>
           <p v-if="!policyValid" role="alert" class="text-sm text-destructive xl:col-span-3">{{ t('collections.aiThresholdError') }}</p>
         </div>
       </section>

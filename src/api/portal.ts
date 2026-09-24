@@ -1,6 +1,6 @@
 import type { AxiosProgressEvent } from 'axios'
 import { api } from './client'
-import type { CollectionStatus, RequirementStatus } from './collections'
+import type { CollectionFilterStatus, CollectionStatus, RequirementStatus } from './collections'
 
 export type DocumentStatus = 'QUARANTINED' | 'AVAILABLE' | 'FAILED' | 'EXCLUDED'
 
@@ -49,18 +49,18 @@ export interface PortalCollectionSummary {
   requiredCount: number
   readyCount: number
   updatedAt: string
+  reviewStatus?: 'PROCESSING' | 'AI_PASSED' | 'AWAITING_ACCOUNTANT' | null
 }
 
 export interface PortalCollectionListQuery {
   clientId?: string
   period?: string
-  status?: CollectionStatus
+  status?: CollectionFilterStatus
   sort?: 'due_at' | 'period' | 'updated_at'
   order?: 'asc' | 'desc'
 }
 
 export interface PortalCollectionDetail extends PortalCollectionSummary {
-  reviewStatus?: 'PROCESSING' | 'AWAITING_ACCOUNTANT' | null
   scopeNote: string | null
   requirements: PortalRequirement[]
   submission: PortalSubmission | null

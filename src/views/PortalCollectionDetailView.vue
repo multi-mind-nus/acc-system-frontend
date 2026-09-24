@@ -77,6 +77,7 @@ function pollReview() {
 watch(() => detail.value?.reviewStatus, pollReview)
 
 const editable = computed(() => detail.value && ['OPEN', 'CHANGES_REQUESTED'].includes(detail.value.status))
+const collectionStatus = computed(() => detail.value?.reviewStatus === 'AI_PASSED' ? 'AI_PASSED' : detail.value?.status ?? '')
 const isOtherBucket = (item: PortalRequirement) => item.id === detail.value?.id
 const requirementEditable = (item: PortalRequirement) => detail.value?.status === 'OPEN'
   || (detail.value?.status === 'CHANGES_REQUESTED' && !isOtherBucket(item) && ['PENDING', 'RECEIVED', 'NEEDS_ACTION'].includes(item.status))
@@ -458,7 +459,7 @@ onBeforeUnmount(() => { disposed = true; clearTimeout(reviewTimer); smartGenerat
       <p v-if="detail.reviewStatus" role="status" class="rounded-xl border bg-muted/30 px-4 py-3 text-sm text-muted-foreground">{{ t(`portal.reviewStatus.${detail.reviewStatus}`) }}</p>
       <header class="flex flex-wrap items-start justify-between gap-4">
         <div><p class="text-sm text-muted-foreground">{{ detail.clientName }}</p><h1 class="mt-1 text-[32px] leading-tight font-semibold tracking-[-0.025em]">{{ formatPeriod(detail.period) }}</h1></div>
-        <StatusBadge :status="detail.status" translation-prefix="collections.status" />
+        <StatusBadge :status="collectionStatus" translation-prefix="collections.status" />
       </header>
 
       <section class="app-panel overflow-hidden">

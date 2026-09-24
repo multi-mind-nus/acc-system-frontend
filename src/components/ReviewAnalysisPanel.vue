@@ -10,6 +10,7 @@ const props = defineProps<{ run: ReviewRun; requirementId?: string; documentIds:
 defineEmits<{ retry: []; preview: [document: { id: string; name: string; contentType: string }] }>()
 const { t } = useI18n()
 const finding = computed(() => props.run.output?.findings.find(item => item.requirementId === props.requirementId))
+const manualReasons = computed(() => finding.value?.manualReasons.filter(value => value !== 'MANUAL_REVIEW_REQUIRED') ?? [])
 const extractions = computed(() => props.run.output?.extractions.filter(item => props.documentIds.includes(item.documentId)) ?? [])
 const document = (id: string) => props.run.documents.find(item => item.id === id)
 const checkIcon = (value: string) => value === 'MATCH' ? CheckCircle2 : value === 'MISMATCH' ? AlertCircle : CircleHelp
@@ -31,9 +32,10 @@ const checkColor = (value: string) => value === 'MATCH' ? 'text-emerald-600 dark
     <div v-else class="space-y-5 p-5">
       <template v-if="finding">
         <div class="space-y-2">
-          <p class="text-sm font-medium">{{ t(`review.ai.actions.${finding.action}`) }}</p>
+          <div class="flex flex-wrap items-center gap-2"><p class="text-sm font-medium">{{ t(`review.ai.actions.${finding.action}`) }}</p><span v-if="finding.autoApplied && finding.suggestedDecision" class="rounded-full bg-primary/10 px-2 py-1 text-[11px] font-medium text-primary">{{ t(`review.ai.autoApplied.${finding.suggestedDecision}`) }}</span></div>
           <p class="whitespace-pre-wrap text-sm leading-6">{{ finding.explanation }}</p>
           <p class="text-xs text-muted-foreground">{{ t('review.ai.confidence', { value: Math.round(finding.confidence * 100) }) }}</p>
+          <p v-if="manualReasons.length" class="text-xs text-amber-700 dark:text-amber-300">{{ manualReasons.map(value => t(`review.ai.manualReasons.${value}`)).join(' · ') }}</p>
         </div>
         <div class="grid gap-3 sm:grid-cols-2">
           <div v-for="check in [{ label: 'entity', value: finding.entityCheck }, { label: 'period', value: finding.periodCheck }]" :key="check.label" class="flex items-center gap-2 rounded-xl border px-3 py-3 text-sm">

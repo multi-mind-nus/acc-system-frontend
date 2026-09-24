@@ -1,6 +1,6 @@
 export const portalMessages = {
   en: { portal: {
-    reviewStatus: { PROCESSING: 'Your submission is being checked. Your accountant will review the results.', AWAITING_ACCOUNTANT: 'Your documents have been submitted and are awaiting your accountant’s review.' },
+    reviewStatus: { PROCESSING: 'Your submission is being checked. Your accountant will review the results.', AI_PASSED: 'AI checks passed for the complete submission. Your accountant will confirm the final result.', AWAITING_ACCOUNTANT: 'Your documents have been submitted and are awaiting your accountant’s review.' },
     title: 'Documents', description: 'Upload the records your accountant needs for each period.', request: 'Document request',
     back: 'Back to documents', loading: 'Loading…', retry: 'Try again', dismiss: 'Dismiss',
     empty: 'No document requests', emptyHint: 'New requests from your accountant will appear here.',
@@ -41,7 +41,7 @@ export const portalMessages = {
     failure: { MALWARE_DETECTED: 'Unsafe file detected', PROCESSING_FAILED: 'Processing could not be completed', UNKNOWN: 'Processing failed' },
   } },
   'zh-CN': { portal: {
-    reviewStatus: { PROCESSING: '已提交，正在检查资料，之后由会计确认审核结果。', AWAITING_ACCOUNTANT: '资料已提交，等待会计审核。' },
+    reviewStatus: { PROCESSING: '已提交，正在检查资料，之后由会计确认审核结果。', AI_PASSED: '本轮资料已全部通过 AI 检查，等待会计最终确认。', AWAITING_ACCOUNTANT: '资料已提交，等待会计审核。' },
     title: '资料提交', description: '按期间上传会计需要的业务资料。', request: '资料收集请求',
     back: '返回资料提交', loading: '正在加载…', retry: '重试', dismiss: '关闭',
     empty: '暂无资料请求', emptyHint: '会计发布新请求后会显示在这里。',

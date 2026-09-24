@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Archive, ArrowUpRight, BadgeCheck, Ban, CalendarDays, ChevronDown, ChevronUp, ClipboardCheck, Clock3, Copy, FilePenLine, FilePlus2, ListChecks, Pencil, RotateCcw, Send, Undo2, Upload, UserRound, XCircle } from '@lucide/vue'
+import { Archive, ArrowUpRight, BadgeCheck, Ban, CalendarDays, ChevronDown, ChevronUp, ClipboardCheck, Clock3, Copy, FilePenLine, FilePlus2, ListChecks, Pencil, RotateCcw, Send, Sparkles, Undo2, Upload, UserRound, XCircle } from '@lucide/vue'
 import { computed, reactive, ref, watch, type Component } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { collectionsApi, type CollectionDetail, type WorkflowEvent } from '@/api/collections'
@@ -28,6 +28,7 @@ let generation = 0
 
 const canEdit = computed(() => detail.value?.status === 'DRAFT')
 const canCancel = computed(() => detail.value && ['DRAFT', 'OPEN', 'IN_REVIEW', 'CHANGES_REQUESTED'].includes(detail.value.status))
+const displayStatus = computed(() => detail.value?.reviewStatus === 'AI_PASSED' ? 'AI_PASSED' : detail.value?.status ?? '')
 const activityEvents = computed(() => detail.value ? [...detail.value.events].reverse() : [])
 const hiddenActivityCount = computed(() => activityEvents.value.length > 8 ? activityEvents.value.length - 5 : 0)
 const visibleActivityEvents = computed(() => activityExpanded.value || !hiddenActivityCount.value
@@ -37,11 +38,11 @@ const currentStep = computed(() => visibleActivityEvents.value.length + 1)
 const eventIcons: Record<string, Component> = {
   CREATED: FilePlus2, UPDATED: FilePenLine, REQUIREMENT_ADDED: ListChecks, FOLLOW_UP_ADDED: ListChecks,
   REQUIREMENT_UPDATED: FilePenLine, REQUIREMENT_REMOVED: ListChecks, PUBLISHED: Send, CANCELLED: Ban,
-  COPIED: Copy, SUBMITTED: Upload, REQUIREMENT_REVIEWED: ClipboardCheck, CHANGES_REQUESTED: Undo2,
+  COPIED: Copy, SUBMITTED: Upload, REQUIREMENT_REVIEWED: ClipboardCheck, AI_REQUIREMENT_REVIEWED: Sparkles, CHANGES_REQUESTED: Undo2,
   APPROVED: BadgeCheck, APPROVAL_WITHDRAWN: RotateCcw, CLOSED: Archive,
 }
 const statusIcons: Record<string, Component> = {
-  DRAFT: FilePenLine, OPEN: Clock3, IN_REVIEW: ClipboardCheck, CHANGES_REQUESTED: Clock3,
+  DRAFT: FilePenLine, OPEN: Clock3, IN_REVIEW: ClipboardCheck, AI_PASSED: Sparkles, CHANGES_REQUESTED: Clock3,
   READY_FOR_BOOKKEEPING: BadgeCheck, CLOSED: Archive, CANCELLED: Ban,
 }
 
@@ -106,7 +107,7 @@ watch(() => props.requestId, () => { activityExpanded.value = false; load() }, {
       <header :class="embedded ? 'border-b px-6 py-5' : ''">
         <div class="flex items-start justify-between gap-4">
           <div class="min-w-0"><p class="text-sm text-muted-foreground">{{ formatPeriod(detail.period) }}</p><h2 class="mt-1 truncate text-xl font-semibold tracking-tight">{{ detail.clientName }}</h2></div>
-          <StatusBadge :status="detail.status" translation-prefix="collections.status" />
+          <StatusBadge :status="displayStatus" translation-prefix="collections.status" />
         </div>
         <div class="mt-4 flex flex-wrap gap-2">
           <Button v-if="canEdit" size="sm" @click="confirmAction = 'publish'"><Send class="size-4" />{{ t('collections.publish') }}</Button>
@@ -174,8 +175,8 @@ watch(() => props.requestId, () => { activityExpanded.value = false; load() }, {
               </StepperItem>
             </template>
             <StepperItem :step="currentStep" class="relative w-full items-start gap-3">
-              <StepperTrigger tabindex="-1" class="pointer-events-none relative z-10 shrink-0 p-0"><StepperIndicator class="size-7 border border-primary !bg-primary !text-primary-foreground ring-4 ring-primary/10"><component :is="statusIcons[detail.status] ?? Clock3" class="size-3.5" /></StepperIndicator></StepperTrigger>
-              <div class="min-w-0 pt-1"><StepperTitle class="text-sm font-semibold whitespace-normal">{{ t('collections.currentStatus', { status: t(`collections.status.${detail.status}`) }) }}</StepperTitle><StepperDescription class="mt-1 leading-5">{{ t(`collections.currentStatusHint.${detail.status}`) }}</StepperDescription></div>
+              <StepperTrigger tabindex="-1" class="pointer-events-none relative z-10 shrink-0 p-0"><StepperIndicator class="size-7 border border-primary !bg-primary !text-primary-foreground ring-4 ring-primary/10"><component :is="statusIcons[displayStatus] ?? Clock3" class="size-3.5" /></StepperIndicator></StepperTrigger>
+              <div class="min-w-0 pt-1"><StepperTitle class="text-sm font-semibold whitespace-normal">{{ t('collections.currentStatus', { status: t(`collections.status.${displayStatus}`) }) }}</StepperTitle><StepperDescription class="mt-1 leading-5">{{ t(`collections.currentStatusHint.${displayStatus}`) }}</StepperDescription></div>
             </StepperItem>
           </Stepper>
         </section>

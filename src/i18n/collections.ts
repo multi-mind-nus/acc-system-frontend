@@ -1,6 +1,6 @@
 export const collectionsMessages = {
   en: { collections: {
-    aiPolicy: 'AI assistance', aiPolicyHint: 'Upload classification and post-submission analysis are available. Review decisions remain manual in this release; automatic item review will be enabled later.', aiMode: 'Mode', aiModes: { OFF: 'Manual only', SUGGEST: 'Suggestions only', AUTO_REVIEW: 'Automatic item review' }, aiSatisfyThreshold: 'Accepting documents', aiReturnThreshold: 'Requesting corrections', aiThresholdHint: 'A more cautious setting sends more items to the accountant for review. Final approval always stays with the accountant.', aiThresholdError: 'Choose a review preference for each action.',
+    aiPolicy: 'AI assistance', aiPolicyHint: 'High-confidence issues can be returned to the client automatically. Documents that pass the AI check still require accountant confirmation.', aiMode: 'Mode', aiModes: { OFF: 'Manual only', SUGGEST: 'Suggestions only', AUTO_REVIEW: 'Auto-return issues' }, aiSatisfyThreshold: 'Passing suggestion', aiReturnThreshold: 'Automatic return', aiThresholdError: 'Choose a review preference for each action.',
     aiLevels: { moreAutomatic: 'More automatic handling', balanced: 'Balanced (recommended)', moreManual: 'Prefer manual review', existing: 'Keep existing custom setting' },
     aiLevelHints: { moreAutomatic: 'Allows automatic handling at a lower confidence level; fewer items need manual review.', balanced: 'Requires high confidence before acting; uncertain items go to the accountant.', moreManual: 'Requires an even higher confidence level; more items go to the accountant.', existing: 'This request has a custom rule. Keep it unchanged or choose one of the presets.' },
     title: 'Collections', description: 'Prepare and track monthly document requests.', new: 'New request',
@@ -25,16 +25,16 @@ export const collectionsMessages = {
     copied: 'A new draft was created for {period}.', created: 'Draft created.', eventBy: '{actor} · {time}',
     currentStatus: 'Current status · {status}',
     currentStatusHint: {
-      DRAFT: 'The request is being prepared.', OPEN: 'Waiting for the client’s first submission.', IN_REVIEW: 'The submitted documents are being reviewed.',
-      CHANGES_REQUESTED: 'Waiting for the client to provide the requested changes.', READY_FOR_BOOKKEEPING: 'The documents are approved and ready for bookkeeping.',
+      DRAFT: 'The request is being prepared.', OPEN: 'Waiting for the client’s first submission.', IN_REVIEW: 'The submitted documents are being reviewed.', AI_PASSED: 'AI checks passed for the complete submission. Accountant confirmation is still required.',
+      CHANGES_REQUESTED: 'Waiting for the client to provide the requested changes.', READY_FOR_BOOKKEEPING: 'The documents have been confirmed by the accountant.',
       CLOSED: 'The collection request is complete.', CANCELLED: 'The collection request has ended.',
     },
     types: { BANK_STATEMENT: 'Bank statement', SALES_INVOICE: 'Sales invoices', PURCHASE_INVOICE: 'Purchase invoices', RECEIPT: 'Receipts', PAYMENT_PLATFORM_REPORT: 'Payment platform report', LOAN_STATEMENT: 'Loan statement', OTHER: 'Other supporting documents' },
-    status: { DRAFT: 'Draft', OPEN: 'Open', IN_REVIEW: 'In review', CHANGES_REQUESTED: 'Changes requested', READY_FOR_BOOKKEEPING: 'Ready for bookkeeping', CLOSED: 'Closed', CANCELLED: 'Cancelled', PENDING: 'Pending', RECEIVED: 'Received', NEEDS_ACTION: 'Needs action', SATISFIED: 'Satisfied', WAIVED: 'Waived' },
-    events: { CREATED: 'Request created', UPDATED: 'Request updated', REQUIREMENT_ADDED: 'Requirement added', FOLLOW_UP_ADDED: 'Follow-up requirement added', REQUIREMENT_UPDATED: 'Requirement updated', REQUIREMENT_REMOVED: 'Requirement removed', PUBLISHED: 'Request published', CANCELLED: 'Request cancelled', COPIED: 'Copied from a previous request', SUBMITTED: 'Client submitted round {round}', REQUIREMENT_REVIEWED: 'Requirement reviewed', CHANGES_REQUESTED: 'Returned to client', APPROVED: 'Approved for bookkeeping', APPROVAL_WITHDRAWN: 'Approval withdrawn', CLOSED: 'Request closed' },
+    status: { DRAFT: 'Draft', OPEN: 'Open', IN_REVIEW: 'In review', AI_PASSED: 'Awaiting confirmation', CHANGES_REQUESTED: 'Changes requested', READY_FOR_BOOKKEEPING: 'Confirmed', CLOSED: 'Closed', CANCELLED: 'Cancelled', PENDING: 'Pending', RECEIVED: 'Received', NEEDS_ACTION: 'Needs action', SATISFIED: 'Satisfied', WAIVED: 'Waived' },
+    events: { CREATED: 'Request created', UPDATED: 'Request updated', REQUIREMENT_ADDED: 'Requirement added', FOLLOW_UP_ADDED: 'Follow-up requirement added', REQUIREMENT_UPDATED: 'Requirement updated', REQUIREMENT_REMOVED: 'Requirement removed', PUBLISHED: 'Request published', CANCELLED: 'Request cancelled', COPIED: 'Copied from a previous request', SUBMITTED: 'Client submitted round {round}', REQUIREMENT_REVIEWED: 'Requirement reviewed', AI_REQUIREMENT_REVIEWED: 'AI completed an item decision', CHANGES_REQUESTED: 'Returned to client', APPROVED: 'Request confirmed', APPROVAL_WITHDRAWN: 'Confirmation withdrawn', CLOSED: 'Request closed' },
   } },
   'zh-CN': { collections: {
-    aiPolicy: 'AI 辅助', aiPolicyHint: '当前支持上传分类和提交后分析。此版本仍由会计保存审核决定，自动单项审核将在后续启用。', aiMode: '模式', aiModes: { OFF: '仅人工处理', SUGGEST: '仅提供建议', AUTO_REVIEW: '自动单项审核' }, aiSatisfyThreshold: '确认资料符合要求', aiReturnThreshold: '要求客户补交', aiThresholdHint: '设置越谨慎，越多资料会交由会计复核。整单批准始终由会计完成。', aiThresholdError: '请为两种操作选择处理偏好。',
+    aiPolicy: 'AI 辅助', aiPolicyHint: '高把握的问题可自动退回客户补交；AI 检查通过的资料仍需会计确认。', aiMode: '模式', aiModes: { OFF: '仅人工处理', SUGGEST: '仅提供建议', AUTO_REVIEW: '异常自动退回' }, aiSatisfyThreshold: '通过建议', aiReturnThreshold: '自动退回', aiThresholdError: '请为两种操作选择处理偏好。',
     aiLevels: { moreAutomatic: '更多自动处理', balanced: '平衡处理（推荐）', moreManual: '优先人工复核', existing: '保留原有自定义设置' },
     aiLevelHints: { moreAutomatic: '允许在较低把握下自动执行，减少需要人工复核的资料。', balanced: '只有把握很高时才自动执行，不确定的资料交给会计。', moreManual: '需要更高把握才自动执行，更多资料交给会计复核。', existing: '原请求使用独立设置；保留此项不会更改规则，也可以改选其他档位。' },
     title: '资料收集', description: '创建并跟踪每月客户资料清单。', new: '新建请求',
@@ -59,12 +59,12 @@ export const collectionsMessages = {
     copied: '已创建 {period} 的新草稿。', created: '草稿已创建。', eventBy: '{actor} · {time}',
     currentStatus: '当前状态 · {status}',
     currentStatusHint: {
-      DRAFT: '请求正在准备中。', OPEN: '正在等待客户首次提交资料。', IN_REVIEW: '会计正在审核客户提交的资料。',
-      CHANGES_REQUESTED: '正在等待客户按反馈补交资料。', READY_FOR_BOOKKEEPING: '资料已通过审核，可以开始记账。',
+      DRAFT: '请求正在准备中。', OPEN: '正在等待客户首次提交资料。', IN_REVIEW: '会计正在审核客户提交的资料。', AI_PASSED: '本轮资料已全部通过 AI 检查，等待会计确认整单。',
+      CHANGES_REQUESTED: '正在等待客户按反馈补交资料。', READY_FOR_BOOKKEEPING: '资料已经会计确认。',
       CLOSED: '本次资料收集已经完成。', CANCELLED: '本次资料收集已经终止。',
     },
     types: { BANK_STATEMENT: '银行对账单', SALES_INVOICE: '销售发票', PURCHASE_INVOICE: '采购发票', RECEIPT: '收据', PAYMENT_PLATFORM_REPORT: '收款平台报表', LOAN_STATEMENT: '贷款对账单', OTHER: '其他支持文件' },
-    status: { DRAFT: '草稿', OPEN: '待客户提交', IN_REVIEW: '审核中', CHANGES_REQUESTED: '待补交', READY_FOR_BOOKKEEPING: '可开始记账', CLOSED: '已关闭', CANCELLED: '已取消', PENDING: '待提交', RECEIVED: '已收到', NEEDS_ACTION: '需处理', SATISFIED: '已满足', WAIVED: '已豁免' },
-    events: { CREATED: '创建请求', UPDATED: '更新请求', REQUIREMENT_ADDED: '添加资料要求', FOLLOW_UP_ADDED: '添加补充资料要求', REQUIREMENT_UPDATED: '更新资料要求', REQUIREMENT_REMOVED: '移除资料要求', PUBLISHED: '发布请求', CANCELLED: '取消请求', COPIED: '从上一请求复制', SUBMITTED: '客户提交第 {round} 轮资料', REQUIREMENT_REVIEWED: '完成单项审核', CHANGES_REQUESTED: '退回客户补交', APPROVED: '批准进入记账', APPROVAL_WITHDRAWN: '撤回批准', CLOSED: '关闭请求' },
+    status: { DRAFT: '草稿', OPEN: '待客户提交', IN_REVIEW: '审核中', AI_PASSED: '待人工确认', CHANGES_REQUESTED: '待补交', READY_FOR_BOOKKEEPING: '已确认', CLOSED: '已关闭', CANCELLED: '已取消', PENDING: '待提交', RECEIVED: '已收到', NEEDS_ACTION: '需处理', SATISFIED: '已满足', WAIVED: '已豁免' },
+    events: { CREATED: '创建请求', UPDATED: '更新请求', REQUIREMENT_ADDED: '添加资料要求', FOLLOW_UP_ADDED: '添加补充资料要求', REQUIREMENT_UPDATED: '更新资料要求', REQUIREMENT_REMOVED: '移除资料要求', PUBLISHED: '发布请求', CANCELLED: '取消请求', COPIED: '从上一请求复制', SUBMITTED: '客户提交第 {round} 轮资料', REQUIREMENT_REVIEWED: '完成单项审核', AI_REQUIREMENT_REVIEWED: 'AI 完成单项审核', CHANGES_REQUESTED: '退回客户补交', APPROVED: '确认整单', APPROVAL_WITHDRAWN: '撤回确认', CLOSED: '关闭请求' },
   } },
 }

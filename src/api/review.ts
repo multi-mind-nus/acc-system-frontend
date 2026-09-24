@@ -26,7 +26,9 @@ export interface ReviewDecision {
   issueCode: IssueCode | null
   clientMessage: string | null
   internalNote: string | null
-  createdBy: string
+  createdBy: string | null
+  source: 'HUMAN' | 'AI'
+  aiRunId: string | null
   createdByName: string
   createdAt: string
   evidence: Array<{ documentId: string; relation: EvidenceRelation }>
@@ -75,6 +77,7 @@ export interface ReviewFinding {
   amounts: Array<{ currency: string; operation: 'SUM' | 'SUBTRACT' | 'MULTIPLY'; operands: Array<{ documentId: string; amount: string; label: string }>; expectedAmount: string; actualAmount: string; difference: string }>
   amountsValid: boolean
   manualReasons: string[]
+  autoApplied?: boolean
 }
 
 export interface ReviewRun {
@@ -106,6 +109,7 @@ export const reviewApi = {
     issueCode?: IssueCode
     clientMessage?: string
     internalNote?: string
+    evidence?: Array<{ documentId: string; relation: EvidenceRelation }>
   }) => api.post<ReviewCollection>(`/requirements/${id}/review`, body).then(({ data }) => data),
   requestChanges: (id: string, version: number, reason: string, key: string) => api.post<ReviewCollection>(`/collection-requests/${id}/request-changes`, { version, reason }, idempotency(key)).then(({ data }) => data),
   approve: (id: string, version: number, key: string) => api.post<ReviewCollection>(`/collection-requests/${id}/approve`, { version }, idempotency(key)).then(({ data }) => data),

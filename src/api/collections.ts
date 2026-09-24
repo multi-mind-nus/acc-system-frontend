@@ -2,6 +2,7 @@ import { api } from './client'
 import type { Page } from './accounts'
 
 export type CollectionStatus = 'DRAFT' | 'OPEN' | 'IN_REVIEW' | 'CHANGES_REQUESTED' | 'READY_FOR_BOOKKEEPING' | 'CLOSED' | 'CANCELLED'
+export type CollectionFilterStatus = CollectionStatus | 'AI_PASSED'
 export type RequirementStatus = 'PENDING' | 'RECEIVED' | 'NEEDS_ACTION' | 'SATISFIED' | 'WAIVED'
 export type AIMode = 'OFF' | 'SUGGEST' | 'AUTO_REVIEW'
 export type AnalysisType = 'DOCUMENT_REQUIREMENT_VALIDATION' | 'BANK_TRANSACTION_RECONCILIATION'
@@ -36,6 +37,7 @@ export interface CollectionSummary {
   assigneeName: string
   requirementCount: number
   updatedAt: string
+  reviewStatus?: 'PROCESSING' | 'AI_PASSED' | 'AWAITING_ACCOUNTANT' | null
 }
 
 export interface WorkflowEvent {
@@ -66,7 +68,7 @@ export interface CollectionListQuery {
   pageSize?: number
   clientId?: string
   period?: string
-  status?: CollectionStatus
+  status?: CollectionFilterStatus
   assigneeId?: string
   dueFrom?: string
   dueTo?: string
