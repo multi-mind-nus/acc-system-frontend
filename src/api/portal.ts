@@ -34,7 +34,15 @@ export interface PortalSubmission {
   roundNo: number
   status: 'DRAFT' | 'SUBMITTED'
   note: string | null
+  manualReviewRequested: boolean
   submittedAt: string | null
+  createdAt: string
+}
+
+export interface PortalWorkflowEvent {
+  id: string
+  eventType: 'PUBLISHED' | 'SUBMITTED' | 'AI_REVIEW_COMPLETED' | 'CHANGES_REQUESTED' | 'APPROVED' | 'APPROVAL_WITHDRAWN' | 'CANCELLED'
+  payload: Record<string, unknown>
   createdAt: string
 }
 
@@ -64,6 +72,8 @@ export interface PortalCollectionDetail extends PortalCollectionSummary {
   scopeNote: string | null
   requirements: PortalRequirement[]
   submission: PortalSubmission | null
+  manualReviewAvailable: boolean
+  events: PortalWorkflowEvent[]
 }
 
 export interface PortalUploadResult {
@@ -105,6 +115,9 @@ export const portalApi = {
   },
   document: (linkId: string) => api.get<PortalDocument>(`/portal/document-links/${linkId}`).then(({ data }) => data),
   exclude: (linkId: string) => api.delete<PortalDocument>(`/portal/document-links/${linkId}`).then(({ data }) => data),
-  submit: (id: string, note?: string) => api.post<PortalCollectionDetail>(`/portal/collection-requests/${id}/submit`, { note: note?.trim() || null }).then(({ data }) => data),
+  submit: (id: string, note?: string, manualReviewRequested = false) => api.post<PortalCollectionDetail>(`/portal/collection-requests/${id}/submit`, {
+    note: note?.trim() || null,
+    manualReviewRequested,
+  }).then(({ data }) => data),
   download: (linkId: string) => api.get<Blob>(`/portal/document-links/${linkId}/download`, { responseType: 'blob' }).then(({ data }) => data),
 }

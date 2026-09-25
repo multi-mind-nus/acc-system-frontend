@@ -1,11 +1,11 @@
 <script setup lang="ts">
 import { AlertCircle, ArrowLeft, CheckCircle2, Download, FileText, GripVertical, MessageSquareText, RotateCw, Sparkles, Trash2, Upload, X } from '@lucide/vue'
 import { DialogContent, DialogDescription, DialogOverlay, DialogPortal, DialogRoot, DialogTitle } from 'reka-ui'
-import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, onMounted, reactive, ref, watch, type Component } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute } from 'vue-router'
 import { readApiError } from '@/api/client'
-import { portalApi, type ClassificationRun, type PortalCollectionDetail, type PortalDocument, type PortalRequirement } from '@/api/portal'
+import { portalApi, type ClassificationRun, type PortalCollectionDetail, type PortalDocument, type PortalRequirement, type PortalWorkflowEvent } from '@/api/portal'
 import ConfirmDialog from '@/components/ConfirmDialog.vue'
 import DocumentPreviewDialog from '@/components/DocumentPreviewDialog.vue'
 import ErrorNotice from '@/components/ErrorNotice.vue'
@@ -13,8 +13,10 @@ import FileTypeIcon from '@/components/FileTypeIcon.vue'
 import StatusBadge from '@/components/StatusBadge.vue'
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion'
 import { Button } from '@/components/ui/button'
+import { Checkbox } from '@/components/ui/checkbox'
 import { Label } from '@/components/ui/label'
 import { Progress } from '@/components/ui/progress'
+import { Stepper, StepperDescription, StepperIndicator, StepperItem, StepperSeparator, StepperTitle, StepperTrigger } from '@/components/ui/stepper'
 
 interface UploadState { progress: number; busy: boolean; file?: File; error?: ReturnType<typeof readApiError> }
 interface SmartCandidate {
@@ -41,6 +43,7 @@ const actionError = ref<ReturnType<typeof readApiError> | null>(null)
 const validationMessage = ref('')
 const confirmSubmit = ref(false)
 const submissionNote = ref('')
+const manualReviewRequested = ref(false)
 const previewOpen = ref(false)
 const previewDocument = ref<PortalDocument | null>(null)
 const uploads = reactive<Record<string, UploadState>>({})
@@ -60,6 +63,15 @@ const smartDragTarget = ref<string | null>(null)
 const draggedCandidateId = ref<string | null>(null)
 const selectedCandidateId = ref<string | null>(null)
 const timers = new Set<ReturnType<typeof setTimeout>>()
+const timelineIcons: Record<PortalWorkflowEvent['eventType'], Component> = {
+  PUBLISHED: FileText,
+  SUBMITTED: Upload,
+  AI_REVIEW_COMPLETED: Sparkles,
+  CHANGES_REQUESTED: AlertCircle,
+  APPROVED: CheckCircle2,
+  APPROVAL_WITHDRAWN: RotateCw,
+  CANCELLED: X,
+}
 let smartGeneration = 0
 let reviewTimer: ReturnType<typeof setTimeout> | undefined
 let disposed = false
@@ -89,6 +101,7 @@ const requirementReady = (item: PortalRequirement) => ['SATISFIED', 'WAIVED'].in
   || item.documents.some(document => document.status === 'AVAILABLE' && (
     !editable.value || document.countsForSubmission
     || (detail.value?.status === 'CHANGES_REQUESTED' && ['PENDING', 'RECEIVED'].includes(item.status))
+    || (manualReviewRequested.value && detail.value?.manualReviewAvailable)
   ))
 const readyRequired = computed(() => required.value.filter(requirementReady).length)
 const progress = computed(() => required.value.length ? Math.round(readyRequired.value / required.value.length * 100) : 100)
@@ -113,6 +126,28 @@ function formatPeriod(value: string) {
 function formatDate(value: string) {
   return new Intl.DateTimeFormat(locale.value, { dateStyle: 'medium' }).format(new Date(value))
 }
+
+function formatDateTime(value: string) {
+  return new Intl.DateTimeFormat(locale.value, { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value))
+}
+
+function timelineEventName(event: PortalWorkflowEvent) {
+  const key = event.eventType === 'SUBMITTED' && event.payload.manualReviewRequested
+    ? 'MANUAL_REVIEW_REQUESTED'
+    : event.eventType
+  return t(`portal.timelineEvents.${key}`, { round: Number(event.payload.roundNo ?? 1) })
+}
+
+const timelineStatusIcon = computed<Component>(() => ({
+  PROCESSING: Sparkles,
+  AI_PASSED: Sparkles,
+  AI_NEEDS_REVIEW: FileText,
+  AI_FAILED: FileText,
+  AWAITING_ACCOUNTANT: FileText,
+  CHANGES_REQUESTED: AlertCircle,
+  READY_FOR_BOOKKEEPING: CheckCircle2,
+  CANCELLED: X,
+} as Record<string, Component>)[collectionStatus.value] ?? FileText)
 
 function formatSize(bytes: number) {
   if (bytes < 1024 * 1024) return `${Math.max(1, Math.round(bytes / 1024))} KB`
@@ -438,9 +473,14 @@ async function submit() {
   busy.value = true
   actionError.value = null
   try {
-    detail.value = await portalApi.submit(String(route.params.id), submissionNote.value)
+    detail.value = await portalApi.submit(
+      String(route.params.id),
+      submissionNote.value,
+      manualReviewRequested.value,
+    )
     confirmSubmit.value = false
     submissionNote.value = ''
+    manualReviewRequested.value = false
   } catch (caught) { actionError.value = readApiError(caught) }
   finally { busy.value = false }
 }
@@ -450,13 +490,13 @@ onBeforeUnmount(() => { disposed = true; clearTimeout(reviewTimer); smartGenerat
 </script>
 
 <template>
-  <section class="space-y-7">
+  <section class="space-y-7" :class="editable ? 'pb-20 lg:pb-14' : ''">
     <RouterLink :to="{ name: 'portal-collections' }" class="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground"><ArrowLeft class="size-4" />{{ t('portal.back') }}</RouterLink>
 
     <div v-if="error" class="space-y-3"><ErrorNotice v-bind="error" /><Button variant="outline" @click="load">{{ t('portal.retry') }}</Button></div>
     <p v-else-if="loading" role="status" class="text-sm text-muted-foreground">{{ t('portal.loading') }}</p>
     <template v-else-if="detail">
-      <p v-if="detail.reviewStatus" role="status" class="rounded-xl border bg-muted/30 px-4 py-3 text-sm text-muted-foreground">{{ t(`portal.reviewStatus.${detail.reviewStatus}`) }}</p>
+      <p v-if="detail.reviewStatus" role="status" class="rounded-xl border bg-muted/30 px-4 py-3 text-sm text-muted-foreground">{{ detail.submission?.manualReviewRequested ? t('portal.manualReviewPending') : t(`portal.reviewStatus.${detail.reviewStatus}`) }}</p>
       <header class="flex flex-wrap items-start justify-between gap-4">
         <div><p class="text-sm text-muted-foreground">{{ detail.clientName }}</p><h1 class="mt-1 text-[32px] leading-tight font-semibold tracking-[-0.025em]">{{ formatPeriod(detail.period) }}</h1></div>
         <StatusBadge :status="collectionStatus" translation-prefix="collections.status" />
@@ -473,7 +513,8 @@ onBeforeUnmount(() => { disposed = true; clearTimeout(reviewTimer); smartGenerat
 
       <div v-if="actionError" class="space-y-3"><ErrorNotice v-bind="actionError" /><Button variant="ghost" size="sm" @click="actionError = null">{{ t('portal.dismiss') }}</Button></div>
 
-      <section class="app-panel overflow-hidden" aria-labelledby="requirements-title">
+      <div class="grid items-start gap-7 lg:grid-cols-[minmax(0,1fr)_20rem]">
+      <section class="app-panel min-w-0 overflow-hidden" aria-labelledby="requirements-title">
         <header class="border-b px-5 py-5 sm:px-7"><h2 id="requirements-title" class="text-base font-semibold">{{ t('portal.requirements') }}</h2><p class="mt-1.5 text-sm text-muted-foreground">{{ t('portal.requirementsHint') }}</p></header>
         <div v-if="editableRequirements.length" class="border-b px-5 py-5 sm:px-7">
           <label
@@ -541,18 +582,54 @@ onBeforeUnmount(() => { disposed = true; clearTimeout(reviewTimer); smartGenerat
         </Accordion>
       </section>
 
-      <section class="app-panel overflow-hidden">
-        <div class="flex flex-wrap items-center gap-4 px-5 py-4">
-          <div class="min-w-0 flex-1"><p class="text-sm font-medium">{{ editable ? t('portal.submitTitle') : (detail.reviewStatus ? t(`collections.status.${detail.reviewStatus}`) : t('portal.submittedTitle')) }}</p><p class="mt-1 text-xs text-muted-foreground">{{ editable ? t('portal.submitHint') : (detail.reviewStatus ? t(`portal.reviewStatus.${detail.reviewStatus}`) : t('portal.submittedHint')) }}</p><p v-if="validationMessage" class="mt-2 text-xs font-medium text-amber-700 dark:text-amber-300">{{ validationMessage }}</p></div>
-          <Button v-if="editable" class="h-10" @click="askSubmit">{{ t('portal.submit') }}</Button>
-          <span v-else class="inline-flex items-center gap-2 text-sm font-medium text-primary"><CheckCircle2 class="size-4" />{{ t('portal.readOnly') }}</span>
-        </div>
-        <div v-if="editable" class="space-y-2 border-t px-5 py-4">
+      <section class="app-panel overflow-hidden lg:sticky lg:top-6" aria-labelledby="timeline-title">
+        <header class="border-b px-5 py-5 sm:px-7">
+          <h2 id="timeline-title" class="text-base font-semibold">{{ t('portal.timeline') }}</h2>
+          <p class="mt-1.5 text-sm text-muted-foreground">{{ t('portal.timelineHint') }}</p>
+        </header>
+        <Stepper :model-value="detail.events.length + 1" orientation="vertical" class="flex-col gap-0 px-5 py-5 sm:px-7">
+          <StepperItem v-for="(event, index) in detail.events" :key="event.id" :step="index + 1" class="relative flex w-full items-start gap-3">
+            <StepperTrigger class="pointer-events-none flex shrink-0 flex-col items-center" tabindex="-1">
+              <StepperIndicator class="size-8 border bg-background text-muted-foreground">
+                <component :is="timelineIcons[event.eventType]" class="size-4" />
+              </StepperIndicator>
+            </StepperTrigger>
+            <div class="min-w-0 flex-1 pb-6 pt-1">
+              <StepperTitle class="text-sm font-medium">{{ timelineEventName(event) }}</StepperTitle>
+              <StepperDescription class="mt-1 text-xs">{{ formatDateTime(event.createdAt) }}</StepperDescription>
+            </div>
+            <StepperSeparator class="absolute left-4 top-8 h-[calc(100%-2rem)] w-px" />
+          </StepperItem>
+          <StepperItem :step="detail.events.length + 1" class="relative flex w-full items-start gap-3">
+            <StepperTrigger class="pointer-events-none flex shrink-0 flex-col items-center" tabindex="-1">
+              <StepperIndicator class="size-8 border-primary bg-primary text-primary-foreground">
+                <component :is="timelineStatusIcon" class="size-4" />
+              </StepperIndicator>
+            </StepperTrigger>
+            <div class="min-w-0 flex-1 pt-1">
+              <StepperTitle class="text-sm font-semibold">{{ t('portal.timelineCurrent', { status: t(`collections.status.${collectionStatus}`) }) }}</StepperTitle>
+            </div>
+          </StepperItem>
+        </Stepper>
+      </section>
+      </div>
+
+      <section v-if="editable || detail.submission?.note" class="app-panel overflow-hidden">
+        <div v-if="editable" class="space-y-2 px-5 py-4">
           <Label for="submission-note">{{ t('portal.submissionNote') }}</Label>
           <textarea id="submission-note" v-model="submissionNote" rows="3" maxlength="2000" :placeholder="t('portal.submissionNotePlaceholder')" class="w-full resize-y rounded-xl border bg-background px-3 py-2 text-sm outline-none focus:ring-3 focus:ring-ring/50" />
           <p class="text-xs text-muted-foreground">{{ t('portal.submissionNoteHint') }}</p>
+          <label v-if="detail.manualReviewAvailable" class="mt-4 flex cursor-pointer items-start gap-3 rounded-xl border bg-muted/25 p-4">
+            <Checkbox v-model="manualReviewRequested" class="mt-0.5" />
+            <span><span class="block text-sm font-medium">{{ t('portal.requestManualReview') }}</span><span class="mt-1 block text-xs leading-5 text-muted-foreground">{{ t('portal.requestManualReviewHint') }}</span></span>
+          </label>
         </div>
-        <div v-else-if="detail.submission?.note" class="border-t px-5 py-4"><p class="whitespace-pre-wrap text-sm leading-6">{{ detail.submission.note }}</p></div>
+        <div v-else class="px-5 py-4"><p class="whitespace-pre-wrap text-sm leading-6">{{ detail.submission?.note }}</p></div>
+      </section>
+
+      <section v-if="editable" class="fixed right-4 bottom-24 left-4 z-20 mx-auto flex max-w-[1440px] flex-wrap items-center gap-3 rounded-2xl border bg-card px-5 py-4 shadow-xl lg:right-10 lg:bottom-6 lg:left-[calc(16rem+2.5rem)]">
+        <div class="mr-auto min-w-0"><p class="text-sm font-medium">{{ t('portal.submitTitle') }}</p><p class="mt-1 text-xs text-muted-foreground">{{ validationMessage || t('portal.submitHint') }}</p></div>
+        <Button class="h-10" @click="askSubmit">{{ t('portal.submit') }}</Button>
       </section>
 
       <DialogRoot :open="smartDialogOpen" @update:open="requestSmartClose">
@@ -662,7 +739,7 @@ onBeforeUnmount(() => { disposed = true; clearTimeout(reviewTimer); smartGenerat
       />
 
       <DocumentPreviewDialog v-if="previewDocument" v-model:open="previewOpen" :name="previewDocument.name" :content-type="previewDocument.contentType" :load="() => portalApi.download(previewDocument!.linkId)" />
-      <ConfirmDialog v-model:open="confirmSubmit" :title="t('portal.confirmTitle')" :description="t('portal.confirmHint')" :busy="busy" @confirm="submit" />
+      <ConfirmDialog v-model:open="confirmSubmit" :title="t(manualReviewRequested ? 'portal.confirmManualReviewTitle' : 'portal.confirmTitle')" :description="t(manualReviewRequested ? 'portal.confirmManualReviewHint' : 'portal.confirmHint')" :busy="busy" @confirm="submit" />
     </template>
   </section>
 </template>

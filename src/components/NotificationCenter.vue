@@ -90,7 +90,10 @@ function time(value: string) {
 }
 
 function message(item: NotificationItem, part: 'title' | 'body') {
-  return t(`notifications.events.${item.eventType}.${part}`, {
+  const event = item.eventType === 'SUBMITTED' && item.payload.manualReviewRequested
+    ? 'MANUAL_REVIEW_REQUESTED'
+    : item.eventType
+  return t(`notifications.events.${event}.${part}`, {
     client: item.clientName,
     period: period(item.period),
     round: Number(item.payload.roundNo ?? 1),

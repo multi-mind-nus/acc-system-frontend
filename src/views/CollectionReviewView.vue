@@ -297,7 +297,7 @@ load()
       <div class="space-y-5">
           <section v-if="selectedSubmission" class="app-panel overflow-hidden">
             <div class="flex flex-wrap items-center justify-between gap-4 px-5 py-4">
-              <div><p class="text-sm font-semibold">{{ t('review.submissionRound') }}</p><p class="mt-1 text-xs text-muted-foreground">{{ formatDate(selectedSubmission.submittedAt) }}</p></div>
+              <div><div class="flex flex-wrap items-center gap-2"><p class="text-sm font-semibold">{{ t('review.submissionRound') }}</p><span v-if="selectedSubmission.manualReviewRequested" class="rounded-full bg-amber-500/12 px-2 py-1 text-[11px] font-medium text-amber-700 dark:text-amber-300">{{ t('review.manualReviewRequested') }}</span></div><p class="mt-1 text-xs text-muted-foreground">{{ formatDate(selectedSubmission.submittedAt) }}</p></div>
               <Select v-model="selectedSubmissionId"><SelectTrigger class="w-48"><SelectValue /></SelectTrigger><SelectContent><SelectItem v-for="submission in [...detail.submissions].reverse()" :key="submission.id" :value="submission.id">{{ t('review.roundOption', { round: submission.roundNo }) }}{{ submission.id === latestSubmission?.id ? ` · ${t('review.latest')}` : '' }}</SelectItem></SelectContent></Select>
             </div>
             <div class="h-[72px] border-t bg-muted/25 px-5 py-3"><p class="text-xs font-medium text-muted-foreground">{{ t('review.submissionNote') }}</p><p class="mt-1 line-clamp-2 text-sm leading-5" :class="selectedSubmission.note ? '' : 'text-muted-foreground'" :title="selectedSubmission.note ?? ''">{{ selectedSubmission.note || t('review.noSubmissionNote') }}</p></div>
@@ -337,7 +337,7 @@ load()
               <ReviewAnalysisPanel v-else-if="selectedRun" :run="selectedRun" :requirement-id="selected?.id" :document-ids="visibleDocuments.map(document => document.id)" :can-retry="isLatestRound && detail.status === 'IN_REVIEW'" :retrying="retrying" @retry="retryRun" @preview="preview" />
             </main>
 
-            <aside v-if="selected" class="app-panel overflow-hidden lg:sticky lg:top-6">
+            <aside v-if="selected" class="app-panel min-w-0 overflow-hidden lg:sticky lg:top-6">
               <header class="flex items-center justify-between gap-3 border-b px-5 py-4">
                 <div class="flex items-center gap-2"><h2 class="text-sm font-semibold">{{ t('review.decision') }}</h2><span v-if="selectedRoundDecision?.source === 'AI'" class="rounded-full bg-primary/10 px-2 py-1 text-[11px] font-medium text-primary">{{ t('review.aiDecision') }}</span></div>
                 <Button v-if="canApplySuggestion" size="sm" variant="outline" @click="applySuggestion"><Sparkles class="size-4" />{{ t('review.applySuggestion') }}</Button>
@@ -352,14 +352,14 @@ load()
                 </template>
                 <p v-else class="text-sm text-muted-foreground">{{ t('review.noRoundDecision') }}</p>
               </div>
-              <fieldset v-else :disabled="!canEditDecision" class="space-y-5 p-5">
+              <fieldset v-else :disabled="!canEditDecision" class="min-w-0 space-y-5 p-5">
                 <div class="space-y-2"><Label>{{ t('review.action') }}</Label><Select v-model="decision" :disabled="!canEditDecision"><SelectTrigger class="w-full"><SelectValue /></SelectTrigger><SelectContent><SelectItem v-for="action in ['SATISFY', 'REQUEST_ACTION', 'WAIVE']" :key="action" :value="action">{{ t(`review.${action}`) }}</SelectItem></SelectContent></Select></div>
                 <div v-if="decision === 'REQUEST_ACTION'" class="space-y-2"><Label>{{ t('review.issue') }}</Label><Select v-model="issueCode" :disabled="!canEditDecision"><SelectTrigger class="w-full"><SelectValue :placeholder="t('review.issuePlaceholder')" /></SelectTrigger><SelectContent><SelectItem v-for="code in ['MISSING', 'WRONG_PERIOD', 'ENTITY_MISMATCH', 'UNREADABLE', 'INCOMPLETE', 'OTHER']" :key="code" :value="code">{{ t(`review.issueCodes.${code}`) }}</SelectItem></SelectContent></Select></div>
                 <div class="space-y-2"><Label for="client-message">{{ t('review.clientMessage') }}</Label><textarea id="client-message" v-model="clientMessage" rows="4" class="w-full resize-y rounded-xl border bg-background px-3 py-2 text-sm outline-none focus:ring-3 focus:ring-ring/50" /><p class="text-xs text-muted-foreground">{{ t('review.clientMessageHint') }}</p></div>
                 <div class="space-y-2"><Label for="internal-note">{{ t('review.internalNote') }}</Label><textarea id="internal-note" v-model="internalNote" rows="4" class="w-full resize-y rounded-xl border bg-background px-3 py-2 text-sm outline-none focus:ring-3 focus:ring-ring/50" /><p class="text-xs text-muted-foreground">{{ t('review.internalNoteHint') }}</p></div>
                 <div v-if="evidenceCandidates.length" class="space-y-2">
                   <div><Label>{{ t('review.evidence') }}</Label><p class="mt-1 text-xs text-muted-foreground">{{ t('review.evidenceHint') }}</p></div>
-                  <label v-for="document in evidenceCandidates" :key="document.id" class="flex cursor-pointer items-center gap-3 rounded-xl border p-3 transition-colors" :class="selectedEvidenceIds.includes(document.id) ? 'border-primary/50 bg-primary/5' : ''">
+                  <label v-for="document in evidenceCandidates" :key="document.id" class="flex min-w-0 cursor-pointer items-center gap-3 rounded-xl border p-3 transition-colors" :class="selectedEvidenceIds.includes(document.id) ? 'border-primary/50 bg-primary/5' : ''">
                     <input v-model="selectedEvidenceIds" type="checkbox" :value="document.id" class="size-4 shrink-0 accent-primary" />
                     <FileTypeIcon :name="document.name" :content-type="document.contentType" />
                     <span class="min-w-0 flex-1"><span class="block truncate text-sm" :title="document.name">{{ document.name }}</span><span class="text-xs text-muted-foreground">{{ t(`review.ai.scopes.${document.scope}`) }}</span></span>
@@ -371,7 +371,7 @@ load()
             </aside>
           </div>
 
-          <section v-if="isLatestRound && (detail.status === 'IN_REVIEW' || (detail.status === 'READY_FOR_BOOKKEEPING' && auth.user?.firmRole === 'FIRM_ADMIN'))" class="app-glass fixed right-4 bottom-24 left-4 z-20 mx-auto flex max-w-[1440px] flex-wrap items-center gap-3 rounded-2xl border px-5 py-4 shadow-xl lg:right-10 lg:bottom-6 lg:left-[calc(16rem+2.5rem)]">
+          <section v-if="isLatestRound && (detail.status === 'IN_REVIEW' || (detail.status === 'READY_FOR_BOOKKEEPING' && auth.user?.firmRole === 'FIRM_ADMIN'))" class="fixed right-4 bottom-24 left-4 z-20 mx-auto flex max-w-[1440px] flex-wrap items-center gap-3 rounded-2xl border bg-card px-5 py-4 shadow-xl lg:right-10 lg:bottom-6 lg:left-[calc(16rem+2.5rem)]">
             <p v-if="detail.status === 'IN_REVIEW' && unreviewedCount" class="mr-auto text-sm text-muted-foreground">{{ t('review.reviewPending', { count: unreviewedCount }) }}</p><p v-else-if="detail.status === 'IN_REVIEW' && incompleteCount" class="mr-auto text-sm text-muted-foreground">{{ t('review.approvalBlocked', { count: incompleteCount }) }}</p><p v-else-if="aiRoundPassed" class="mr-auto text-sm text-muted-foreground">{{ t('review.aiRoundPassed') }}</p><span v-else class="mr-auto" />
             <Button v-if="hasRequestedChanges" variant="outline" :disabled="!canRequestChanges" @click="askTransition('requestChanges')"><Send class="size-4" />{{ t('review.requestChanges') }}</Button>
             <Button v-if="detail.status === 'IN_REVIEW'" :disabled="!canApprove" @click="askTransition('approve')"><CheckCircle2 class="size-4" />{{ t('review.approve') }}</Button>

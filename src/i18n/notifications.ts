@@ -21,6 +21,7 @@ export const notificationsMessages = {
       events: {
         PUBLISHED: { title: 'New document request', body: '{client} · {period} is ready for submission.' },
         SUBMITTED: { title: 'Documents submitted', body: '{client} submitted round {round} for {period}.' },
+        MANUAL_REVIEW_REQUESTED: { title: 'Manual review requested', body: '{client} submitted round {round} for {period} and requested an accountant’s review.' },
         CHANGES_REQUESTED: { title: 'Additional documents required', body: '{client} · {period} has been returned for updates.' },
         AI_REVIEW_COMPLETED: { title: 'Ready for confirmation', body: 'Automated checks passed for {client} · {period}.' },
         APPROVED: { title: 'Request confirmed', body: '{client} · {period} has been confirmed.' },
@@ -52,6 +53,7 @@ export const notificationsMessages = {
       events: {
         PUBLISHED: { title: '新的资料收集请求', body: '{client} · {period} 已开放提交。' },
         SUBMITTED: { title: '客户已提交资料', body: '{client} 已提交 {period} 的第 {round} 轮资料。' },
+        MANUAL_REVIEW_REQUESTED: { title: '客户请求人工复审', body: '{client} 已提交 {period} 的第 {round} 轮资料，并请求会计人工审核。' },
         CHANGES_REQUESTED: { title: '需要补交资料', body: '{client} · {period} 已退回补充资料。' },
         AI_REVIEW_COMPLETED: { title: '等待人工确认', body: '{client} · {period} 已通过自动检查。' },
         APPROVED: { title: '收集请求已确认', body: '{client} · {period} 已完成确认。' },

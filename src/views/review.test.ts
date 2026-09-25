@@ -22,8 +22,8 @@ it('defaults to the latest submission and filters every requirement to the selec
       { id: 'other-new', linkId: 'other-new-link', submissionId: 'round-2', roundNo: 2, name: 'notes-new.pdf', contentType: 'application/pdf', sizeBytes: 10, status: 'AVAILABLE', documentType: 'OTHER', relation: 'REFERENCE', createdAt: '2026-09-20T00:00:00Z' },
     ], events: [],
     submissions: [
-      { id: 'round-1', roundNo: 1, note: null, submittedAt: '2026-09-10T00:00:00Z' },
-      { id: 'round-2', roundNo: 2, note: null, submittedAt: '2026-09-20T00:00:00Z' },
+      { id: 'round-1', roundNo: 1, note: null, manualReviewRequested: false, submittedAt: '2026-09-10T00:00:00Z' },
+      { id: 'round-2', roundNo: 2, note: null, manualReviewRequested: false, submittedAt: '2026-09-20T00:00:00Z' },
     ],
     requirements: [{
       id: 'requirement', type: 'BANK_STATEMENT', title: 'Bank statement', required: true,

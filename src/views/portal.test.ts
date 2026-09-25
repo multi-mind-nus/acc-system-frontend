@@ -52,7 +52,8 @@ it('stages files before classification, cancels without merging, and supports ma
   const detail: PortalCollectionDetail = {
     id: 'request', clientId: 'client', clientName: 'Client', period: '2026-09-01',
     dueAt: '2026-09-25T00:00:00Z', status: 'OPEN', assigneeName: 'Accountant',
-    requiredCount: 1, readyCount: 0, updatedAt: '2026-09-01T00:00:00Z', scopeNote: null, submission: null,
+    requiredCount: 1, readyCount: 0, updatedAt: '2026-09-01T00:00:00Z', scopeNote: null, submission: null, manualReviewAvailable: false,
+    events: [{ id: 'published', eventType: 'PUBLISHED', payload: {}, createdAt: '2026-09-01T00:00:00Z' }],
     requirements: [
       { id: 'bank', type: 'BANK_STATEMENT', title: 'Bank statement', required: true, criteria: {}, status: 'PENDING', clientMessage: null, documents: [] },
       { id: 'request', type: 'OTHER', title: 'Other supporting documents', required: false, criteria: {}, status: 'PENDING', clientMessage: null, documents: [] },
@@ -74,6 +75,21 @@ it('stages files before classification, cancels without merging, and supports ma
   const cancel = vi.spyOn(portalApi, 'cancelClassification').mockResolvedValue({ ...run, status: 'CANCELLED' })
   const confirm = vi.spyOn(portalApi, 'confirmClassification').mockResolvedValue({ ...finished, confirmedAt: '2026-09-22T00:00:00Z' })
   const upload = vi.spyOn(portalApi, 'upload')
+  const submit = vi.spyOn(portalApi, 'submit').mockImplementation(async (_id, note, manualReviewRequested) => ({
+    ...detail,
+    status: 'IN_REVIEW',
+    reviewStatus: 'AWAITING_ACCOUNTANT',
+    manualReviewAvailable: false,
+    events: [...detail.events, {
+      id: 'submitted', eventType: 'SUBMITTED',
+      payload: { roundNo: 2, manualReviewRequested: manualReviewRequested ?? false },
+      createdAt: '2026-09-22T00:00:00Z',
+    }],
+    submission: {
+      id: 'submission-2', roundNo: 2, status: 'SUBMITTED', note: note ?? null,
+      manualReviewRequested: manualReviewRequested ?? false, submittedAt: '2026-09-22T00:00:00Z', createdAt: '2026-09-22T00:00:00Z',
+    },
+  }))
   const router = createRouter({ history: createMemoryHistory(), routes: [
     { path: '/client/collections/:id', component: { render: () => null } },
   ] })
@@ -92,16 +108,21 @@ it('stages files before classification, cancels without merging, and supports ma
       smartCancelConfirm: boolean
       smartCandidates: Array<{ id: string; target: string }>
       detail: PortalCollectionDetail
+      submissionNote: string
+      manualReviewRequested: boolean
       smartCategories: Array<{ target: string }>
+      missing: PortalCollectionDetail['requirements']
       requirementEditable: (requirement: PortalCollectionDetail['requirements'][number]) => boolean
       requirementHasIssue: (requirement: PortalCollectionDetail['requirements'][number]) => boolean
       collectionStatus: string
+      timelineEventName: (event: PortalCollectionDetail['events'][number]) => string
       prepareSmartUpload: (files: File[]) => void
       startSmartAnalysis: () => Promise<void>
       moveSmartCandidate: (candidateId: string, target: string) => void
       requestSmartClose: (open: boolean) => void
       discardSmartUpload: () => Promise<void>
       confirmSmartUpload: () => Promise<void>
+      submit: () => Promise<void>
     } }).setupState
     await vi.waitFor(() => expect(state.loading).toBe(false))
     state.detail.status = 'IN_REVIEW'
@@ -172,5 +193,21 @@ it('stages files before classification, cancels without merging, and supports ma
     state.detail.requirements[0]!.status = 'NEEDS_ACTION'
     expect(state.requirementEditable(state.detail.requirements[0]!)).toBe(true)
     expect(state.smartCategories.map(category => category.target)).toEqual(['bank', '__invalid__'])
+
+    state.detail.requirements[0]!.documents = [{
+      id: 'original', linkId: 'original-link', name: 'original.pdf', contentType: 'application/pdf',
+      sizeBytes: 10, status: 'AVAILABLE', failureCode: null, duplicate: false, editable: true,
+      countsForSubmission: false, createdAt: '2026-09-20T00:00:00Z',
+    }]
+    state.detail.manualReviewAvailable = true
+    expect(state.missing).toHaveLength(1)
+    state.submissionNote = 'Please ask an accountant to review this.'
+    state.manualReviewRequested = true
+    expect(state.missing).toHaveLength(0)
+    await state.submit()
+    expect(submit).toHaveBeenCalledWith('request', 'Please ask an accountant to review this.', true)
+    expect(state.detail.submission?.manualReviewRequested).toBe(true)
+    expect(state.detail.reviewStatus).toBe('AWAITING_ACCOUNTANT')
+    expect(state.timelineEventName(state.detail.events.at(-1)!)).toBe('Round 2 submitted for manual review')
   } finally { app.unmount() }
 })

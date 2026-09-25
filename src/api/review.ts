@@ -60,7 +60,7 @@ export interface ReviewCollection {
   assigneeName: string
   requirements: ReviewRequirement[]
   otherDocuments: ReviewDocument[]
-  submissions: Array<{ id: string; roundNo: number; note: string | null; submittedAt: string | null }>
+  submissions: Array<{ id: string; roundNo: number; note: string | null; manualReviewRequested: boolean; submittedAt: string | null }>
   events: WorkflowEvent[]
 }
 

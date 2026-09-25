@@ -63,7 +63,7 @@ it('filters unread notifications, paginates, and returns to the last available p
 it('loads unread status, marks notifications read and opens the related request', async () => {
   const notice: NotificationItem = {
     id: 'notice', requestId: 'request', eventType: 'SUBMITTED', clientName: 'Client',
-    period: '2026-09-01', payload: { roundNo: 2 }, readAt: null,
+    period: '2026-09-01', payload: { roundNo: 2, manualReviewRequested: true }, readAt: null,
     createdAt: '2026-09-25T03:00:00Z',
   }
   vi.spyOn(notificationsApi, 'list').mockResolvedValue({
@@ -88,11 +88,13 @@ it('loads unread status, marks notifications read and opens the related request'
       items: NotificationItem[]
       unreadCount: number
       loading: boolean
+      message: (item: NotificationItem, part: 'title' | 'body') => string
       openNotification: (item: NotificationItem) => Promise<void>
       markAllRead: () => Promise<void>
     } }).setupState
     await vi.waitFor(() => expect(state.loading).toBe(false))
     expect(state.unreadCount).toBe(1)
+    expect(state.message(state.items[0]!, 'title')).toBe('Manual review requested')
     await state.openNotification(state.items[0]!)
     expect(markRead).toHaveBeenCalledWith('notice')
     expect(state.unreadCount).toBe(0)
