@@ -9,7 +9,6 @@ import CollectionDetailPanel from '@/components/CollectionDetailPanel.vue'
 import { collectionsMessages } from '@/i18n/collections'
 import { useAuthStore } from '@/stores/auth'
 import CollectionFormView from './CollectionFormView.vue'
-import { aiThresholdLevel, aiThresholdPresets } from '@/lib/ai-policy'
 import CollectionsView from './CollectionsView.vue'
 
 const renderer = createRenderer({
@@ -19,13 +18,6 @@ const renderer = createRenderer({
 })
 
 afterEach(() => vi.restoreAllMocks())
-
-it('labels review preferences without rounding existing custom thresholds', () => {
-  expect(aiThresholdPresets.map(preset => aiThresholdLevel(preset.value))).toEqual(['moreAutomatic', 'balanced', 'moreManual'])
-  expect(aiThresholdLevel('0.98')).toBe('balanced')
-  expect(aiThresholdLevel('0.990')).toBe('existing')
-  expect(aiThresholdLevel('0.985')).toBe('existing')
-})
 
 it('allows the first step when the client already has an active request for the period', async () => {
   vi.spyOn(accountsApi, 'listClients').mockResolvedValue({ items: [{
@@ -54,20 +46,13 @@ it('allows the first step when the client already has an active request for the 
   try {
     const state = (app._instance as unknown as { setupState: {
       loading: boolean; step: number; stepError: string
-      policyValid: boolean; requirementsValid: boolean
-      form: { aiMode: string; aiSatisfyThreshold: string; aiRequestActionThreshold: string; requirements: RequirementInput[] }
+      requirementsValid: boolean
+      form: { aiMode: string; reviewPreference: string; requirements: RequirementInput[] }
       advance: () => Promise<void>
     } }).setupState
     await vi.waitFor(() => expect(state.loading).toBe(false))
     expect(state.form.aiMode).toBe('AUTO_REVIEW')
-    expect(state.form.aiSatisfyThreshold).toBe('0.980')
-    expect(state.form.aiRequestActionThreshold).toBe('0.980')
-    state.form.aiSatisfyThreshold = '0.499'
-    expect(state.policyValid).toBe(false)
-    state.form.aiSatisfyThreshold = '0.9999'
-    expect(state.policyValid).toBe(false)
-    state.form.aiSatisfyThreshold = '0.990'
-    expect(state.policyValid).toBe(true)
+    expect(state.form.reviewPreference).toBe('STANDARD')
     expect(state.form.requirements[0]).not.toHaveProperty('analysisType')
     state.form.requirements = [{ type: 'BANK_STATEMENT', title: 'Bank statements', required: true, criteria: {} }]
     expect(state.requirementsValid).toBe(true)

@@ -4,7 +4,6 @@ import { computed, reactive, ref, watch, type Component } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { collectionsApi, type CollectionDetail, type WorkflowEvent } from '@/api/collections'
 import { readApiError } from '@/api/client'
-import { aiThresholdLevel } from '@/lib/ai-policy'
 import ConfirmDialog from '@/components/ConfirmDialog.vue'
 import ErrorNotice from '@/components/ErrorNotice.vue'
 import StatusBadge from '@/components/StatusBadge.vue'
@@ -132,7 +131,7 @@ watch(() => props.requestId, () => { activityExpanded.value = false; load() }, {
             <div v-if="detail.aiMode" :class="embedded ? 'mt-4' : 'border-t px-6 py-5'">
               <p class="text-xs text-muted-foreground">{{ t('collections.aiPolicy') }}</p>
               <p class="mt-2 text-sm font-medium">{{ t(`collections.aiModes.${detail.aiMode}`) }}</p>
-              <p v-if="detail.aiMode === 'AUTO_REVIEW'" class="mt-1 text-xs text-muted-foreground">{{ t('collections.aiSatisfyThreshold') }}: {{ t(`collections.aiLevels.${aiThresholdLevel(detail.aiSatisfyThreshold)}`) }} · {{ t('collections.aiReturnThreshold') }}: {{ t(`collections.aiLevels.${aiThresholdLevel(detail.aiRequestActionThreshold)}`) }}</p>
+              <p v-if="detail.aiMode !== 'OFF'" class="mt-1 text-xs text-muted-foreground">{{ t('collections.reviewPreference') }}: {{ t(`collections.reviewPreferences.${detail.reviewPreference ?? 'STANDARD'}`) }}</p>
               <p class="mt-2 text-xs leading-5 text-muted-foreground">{{ t('collections.aiPolicyHint') }}</p>
             </div>
             <div v-if="detail.scopeNote" :class="embedded ? 'mt-4' : 'border-t px-6 py-5'"><p class="text-xs text-muted-foreground">{{ t('collections.scopeNote') }}</p><p class="mt-2 whitespace-pre-wrap text-sm leading-6">{{ detail.scopeNote }}</p></div>

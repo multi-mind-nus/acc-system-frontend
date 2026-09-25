@@ -5,8 +5,9 @@ export type CollectionStatus = 'DRAFT' | 'OPEN' | 'IN_REVIEW' | 'CHANGES_REQUEST
 export type CollectionFilterStatus = CollectionStatus | 'AI_PASSED' | 'PROCESSING' | 'AI_NEEDS_REVIEW' | 'AI_FAILED' | 'AWAITING_ACCOUNTANT'
 export type RequirementStatus = 'PENDING' | 'RECEIVED' | 'NEEDS_ACTION' | 'SATISFIED' | 'WAIVED'
 export type AIMode = 'OFF' | 'SUGGEST' | 'AUTO_REVIEW'
+export type ReviewPreference = 'CAUTIOUS' | 'STANDARD' | 'EFFICIENT'
 export type AnalysisType = 'DOCUMENT_REQUIREMENT_VALIDATION' | 'BANK_TRANSACTION_RECONCILIATION'
-export interface AIPolicy { aiMode?: AIMode; aiSatisfyThreshold?: string; aiRequestActionThreshold?: string }
+export interface AIPolicy { aiMode?: AIMode; reviewPreference?: ReviewPreference }
 
 export interface RequirementInput {
   type: string

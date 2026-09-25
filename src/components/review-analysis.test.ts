@@ -15,7 +15,7 @@ it('shows analysis details without implementation metadata', async () => {
   const run: ReviewRun = {
     id: 'run', submissionId: 'round', status: 'SUCCEEDED', modelVersion: 'mock-reviewer-v1', error: null, createdAt: '', finishedAt: '', searches: [],
     documents: [{ id: 'doc', name: 'G02.pdf', contentType: 'application/pdf', scope: 'CURRENT' }],
-    output: { extractions: [], findings: [{ requirementId: 'req', action: 'ASK_CLIENT', suggestedDecision: 'REQUEST_ACTION', issueCode: 'WRONG_PERIOD', confidence: 0.9, entityCheck: 'UNKNOWN', periodCheck: 'MISMATCH', explanation: 'Wrong period <script>alert(1)</script>', clientMessage: 'Please upload September.', evidence: [{ documentId: 'doc', relation: 'CONTRADICTS', reason: 'July statement' }], amounts: [], amountsValid: true, manualReasons: ['LOW_CONFIDENCE', 'MANUAL_REVIEW_REQUIRED'], autoApplied: false }] },
+    output: { extractions: [], findings: [{ requirementId: 'req', action: 'ASK_CLIENT', suggestedDecision: 'REQUEST_ACTION', issueCode: 'WRONG_PERIOD', entityCheck: 'UNKNOWN', periodCheck: 'MISMATCH', explanation: 'Wrong period <script>alert(1)</script>', clientMessage: 'Please upload September.', evidence: [{ documentId: 'doc', relation: 'CONTRADICTS', reason: 'July statement' }], amounts: [], amountsValid: true, manualReasons: ['LOW_CONFIDENCE', 'MANUAL_REVIEW_REQUIRED'], autoApplied: false }] },
   }
   const html = await render(run)
   expect(html).toContain('Does not match')

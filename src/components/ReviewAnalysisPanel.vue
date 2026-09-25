@@ -34,7 +34,6 @@ const checkColor = (value: string) => value === 'MATCH' ? 'text-emerald-600 dark
         <div class="space-y-2">
           <div class="flex flex-wrap items-center gap-2"><p class="text-sm font-medium">{{ t(`review.ai.actions.${finding.action}`) }}</p><span v-if="finding.autoApplied && finding.suggestedDecision" class="rounded-full bg-primary/10 px-2 py-1 text-[11px] font-medium text-primary">{{ t(`review.ai.autoApplied.${finding.suggestedDecision}`) }}</span></div>
           <p class="whitespace-pre-wrap text-sm leading-6">{{ finding.explanation }}</p>
-          <p class="text-xs text-muted-foreground">{{ t('review.ai.confidence', { value: Math.round(finding.confidence * 100) }) }}</p>
           <p v-if="manualReasons.length" class="text-xs text-amber-700 dark:text-amber-300">{{ manualReasons.map(value => t(`review.ai.manualReasons.${value}`)).join(' · ') }}</p>
         </div>
         <div class="grid gap-3 sm:grid-cols-2">

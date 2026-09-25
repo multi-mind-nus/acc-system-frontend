@@ -69,7 +69,6 @@ export interface ReviewFinding {
   action: 'ASK_CLIENT' | 'RESOLVE' | 'ESCALATE'
   suggestedDecision: 'SATISFY' | 'REQUEST_ACTION' | null
   issueCode: IssueCode | null
-  confidence: number
   entityCheck: 'MATCH' | 'MISMATCH' | 'UNKNOWN'
   periodCheck: 'MATCH' | 'MISMATCH' | 'UNKNOWN'
   explanation: string

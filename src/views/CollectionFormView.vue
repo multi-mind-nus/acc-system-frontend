@@ -5,7 +5,7 @@ import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
 import { accountsApi, type ClientAccount, type UserAccount } from '@/api/accounts'
 import { readApiError } from '@/api/client'
-import { collectionsApi, type AIMode, type CollectionDetail, type RequirementInput } from '@/api/collections'
+import { collectionsApi, type AIMode, type CollectionDetail, type RequirementInput, type ReviewPreference } from '@/api/collections'
 import DatePicker from '@/components/DatePicker.vue'
 import ErrorNotice from '@/components/ErrorNotice.vue'
 import MonthPicker from '@/components/MonthPicker.vue'
@@ -15,7 +15,6 @@ import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Stepper, StepperDescription, StepperIndicator, StepperItem, StepperSeparator, StepperTitle, StepperTrigger } from '@/components/ui/stepper'
 import { useAuthStore } from '@/stores/auth'
-import { aiThresholdLevel, aiThresholdPresets } from '@/lib/ai-policy'
 
 const route = useRoute()
 const router = useRouter()
@@ -23,10 +22,6 @@ const auth = useAuthStore()
 const { t, locale } = useI18n()
 const id = computed(() => typeof route.params.id === 'string' ? route.params.id : '')
 const isEdit = computed(() => route.name === 'collection-edit')
-const thresholdFields = [
-  { key: 'aiSatisfyThreshold', label: 'aiSatisfyThreshold' },
-  { key: 'aiRequestActionThreshold', label: 'aiReturnThreshold' },
-] as const
 const clients = ref<ClientAccount[]>([])
 const assignees = ref<UserAccount[]>([])
 const source = ref<CollectionDetail | null>(null)
@@ -57,8 +52,7 @@ function currentMonth() {
 
 function defaultDue(period: string) { return `${period}-25` }
 function blankRequirement(): RequirementInput { return { type: 'BANK_STATEMENT', title: '', required: true, criteria: {} } }
-const form = reactive({ clientId: '', period: currentMonth(), dueDate: defaultDue(currentMonth()), scopeNote: '', assigneeId: '', version: 1, aiMode: 'AUTO_REVIEW' as AIMode, aiSatisfyThreshold: '0.980', aiRequestActionThreshold: '0.980', requirements: [blankRequirement()] })
-const policyValid = computed(() => [form.aiSatisfyThreshold, form.aiRequestActionThreshold].every(value => /^\d(?:\.\d{1,3})?$/.test(String(value)) && Number(value) >= 0.5 && Number(value) <= 1))
+const form = reactive({ clientId: '', period: currentMonth(), dueDate: defaultDue(currentMonth()), scopeNote: '', assigneeId: '', version: 1, aiMode: 'AUTO_REVIEW' as AIMode, reviewPreference: 'STANDARD' as ReviewPreference, requirements: [blankRequirement()] })
 const requirementsValid = computed(() => form.requirements.every(requirement => requirement.title.trim()))
 const selectedClient = computed(() => clients.value.find(client => client.id === form.clientId)?.legalName ?? '—')
 const selectedAssignee = computed(() => assignees.value.find(user => user.id === form.assigneeId)?.name ?? '—')
@@ -100,7 +94,7 @@ async function load() {
     const copyFrom = typeof route.query.copyFrom === 'string' ? route.query.copyFrom : ''
     if (isEdit.value || copyFrom) {
       source.value = await collectionsApi.get(isEdit.value ? id.value : copyFrom)
-      Object.assign(form, { aiMode: source.value.aiMode ?? 'SUGGEST', aiSatisfyThreshold: source.value.aiSatisfyThreshold ?? '0.980', aiRequestActionThreshold: source.value.aiRequestActionThreshold ?? '0.980' })
+      Object.assign(form, { aiMode: source.value.aiMode ?? 'SUGGEST', reviewPreference: source.value.reviewPreference ?? 'STANDARD' })
       if (isEdit.value) {
         Object.assign(form, { clientId: source.value.clientId, period: source.value.period.slice(0, 7), dueDate: source.value.dueAt.slice(0, 10), scopeNote: source.value.scopeNote ?? '', assigneeId: source.value.assigneeId, version: source.value.version, requirements: source.value.requirements.map(({ type, title, required, criteria }) => ({ type, title, required, criteria: structuredClone(toRaw(criteria)) })) })
       } else {
@@ -120,7 +114,7 @@ function removeRequirement(index: number) { if (form.requirements.length > 1) fo
 
 async function advance() {
   stepError.value = ''
-  if (step.value === 1 && (!form.clientId || !form.period || !form.dueDate || !form.assigneeId || !policyValid.value)) {
+  if (step.value === 1 && (!form.clientId || !form.period || !form.dueDate || !form.assigneeId)) {
     stepError.value = t('collections.completeStep')
     return
   }
@@ -139,7 +133,7 @@ function goBack() {
 
 async function save() {
   if (saving.value) return
-  if (!form.clientId || !form.period || !form.dueDate || !form.assigneeId || !requirementsValid.value || !policyValid.value) {
+  if (!form.clientId || !form.period || !form.dueDate || !form.assigneeId || !requirementsValid.value) {
     stepError.value = t('collections.completeStep')
     return
   }
@@ -147,7 +141,7 @@ async function save() {
   saveError.value = null
   try {
     const dueAt = new Date(`${form.dueDate}T23:59:00`).toISOString()
-    const policy = { aiMode: form.aiMode, aiSatisfyThreshold: String(form.aiSatisfyThreshold), aiRequestActionThreshold: String(form.aiRequestActionThreshold) }
+    const policy = { aiMode: form.aiMode, reviewPreference: form.reviewPreference }
     let value: CollectionDetail
     if (isEdit.value) {
       value = await collectionsApi.update(id.value, { version: form.version, dueAt, scopeNote: form.scopeNote.trim() || null, assigneeId: form.assigneeId, ...policy })
@@ -200,20 +194,16 @@ watch([() => form.clientId, () => form.period], () => {
 
       <section v-if="step === 1" class="app-panel overflow-hidden">
         <header class="border-b px-6 py-5"><h2 class="text-base font-semibold">{{ t('collections.aiPolicy') }}</h2><p class="mt-1.5 text-sm text-muted-foreground">{{ t('collections.aiPolicyHint') }}</p></header>
-        <div class="grid gap-5 p-6 xl:grid-cols-3">
+        <div class="grid gap-5 p-6 sm:grid-cols-2">
           <div class="space-y-2"><Label>{{ t('collections.aiMode') }}</Label><Select v-model="form.aiMode"><SelectTrigger size="lg" class="w-full" :aria-label="t('collections.aiMode')"><SelectValue /></SelectTrigger><SelectContent position="popper"><SelectItem v-for="mode in ['OFF', 'SUGGEST', 'AUTO_REVIEW']" :key="mode" :value="mode">{{ t(`collections.aiModes.${mode}`) }}</SelectItem></SelectContent></Select></div>
-          <div v-for="field in thresholdFields" :key="field.key" class="space-y-2">
-            <Label :for="field.key">{{ t(`collections.${field.label}`) }}</Label>
-            <Select :model-value="Number(form[field.key]).toFixed(3)" :disabled="form.aiMode !== 'AUTO_REVIEW'" @update:model-value="form[field.key] = String($event)">
-              <SelectTrigger :id="field.key" size="lg" class="w-full" :aria-describedby="`${field.key}-hint`"><SelectValue>{{ t(`collections.aiLevels.${aiThresholdLevel(form[field.key])}`) }}</SelectValue></SelectTrigger>
-              <SelectContent position="popper">
-                <SelectItem v-for="preset in aiThresholdPresets" :key="preset.value" :value="preset.value">{{ t(`collections.aiLevels.${preset.level}`) }}</SelectItem>
-                <SelectItem v-if="source?.[field.key] && aiThresholdLevel(source[field.key]) === 'existing'" :value="Number(source[field.key]).toFixed(3)">{{ t('collections.aiLevels.existing') }}</SelectItem>
-              </SelectContent>
+          <div class="space-y-2">
+            <Label for="review-preference">{{ t('collections.reviewPreference') }}</Label>
+            <Select v-model="form.reviewPreference" :disabled="form.aiMode === 'OFF'">
+              <SelectTrigger id="review-preference" size="lg" class="w-full" aria-describedby="review-preference-hint"><SelectValue /></SelectTrigger>
+              <SelectContent position="popper"><SelectItem v-for="preference in ['CAUTIOUS', 'STANDARD', 'EFFICIENT']" :key="preference" :value="preference">{{ t(`collections.reviewPreferences.${preference}`) }}</SelectItem></SelectContent>
             </Select>
-            <p :id="`${field.key}-hint`" class="text-xs leading-5 text-muted-foreground">{{ t(`collections.aiLevelHints.${aiThresholdLevel(form[field.key])}`) }}</p>
+            <p id="review-preference-hint" class="text-xs leading-5 text-muted-foreground">{{ t(`collections.reviewPreferenceHints.${form.reviewPreference}`) }}</p>
           </div>
-          <p v-if="!policyValid" role="alert" class="text-sm text-destructive xl:col-span-3">{{ t('collections.aiThresholdError') }}</p>
         </div>
       </section>
 
@@ -236,7 +226,7 @@ watch([() => form.clientId, () => form.period], () => {
           <div class="px-6 py-5"><dt class="text-xs text-muted-foreground">{{ t('collections.dueDate') }}</dt><dd class="mt-1.5 text-sm font-medium">{{ formatDate(form.dueDate) }}</dd></div>
           <div class="px-6 py-5"><dt class="text-xs text-muted-foreground">{{ t('collections.assignee') }}</dt><dd class="mt-1.5 text-sm font-medium">{{ selectedAssignee }}</dd></div>
         </dl>
-        <div class="border-t px-6 py-5"><p class="text-xs text-muted-foreground">{{ t('collections.aiPolicy') }}</p><p class="mt-2 text-sm font-medium">{{ t(`collections.aiModes.${form.aiMode}`) }}</p><p v-if="form.aiMode === 'AUTO_REVIEW'" class="mt-1 text-sm text-muted-foreground">{{ t('collections.aiSatisfyThreshold') }}: {{ t(`collections.aiLevels.${aiThresholdLevel(form.aiSatisfyThreshold)}`) }} · {{ t('collections.aiReturnThreshold') }}: {{ t(`collections.aiLevels.${aiThresholdLevel(form.aiRequestActionThreshold)}`) }}</p><p class="mt-2 text-xs text-muted-foreground">{{ t('collections.aiPolicyHint') }}</p></div>
+        <div class="border-t px-6 py-5"><p class="text-xs text-muted-foreground">{{ t('collections.aiPolicy') }}</p><p class="mt-2 text-sm font-medium">{{ t(`collections.aiModes.${form.aiMode}`) }}</p><p v-if="form.aiMode !== 'OFF'" class="mt-1 text-sm text-muted-foreground">{{ t('collections.reviewPreference') }}: {{ t(`collections.reviewPreferences.${form.reviewPreference}`) }}</p><p class="mt-2 text-xs text-muted-foreground">{{ t('collections.aiPolicyHint') }}</p></div>
         <div v-if="form.scopeNote" class="border-t px-6 py-5"><p class="text-xs text-muted-foreground">{{ t('collections.scopeNote') }}</p><p class="mt-2 whitespace-pre-wrap text-sm leading-6">{{ form.scopeNote }}</p></div>
         <div class="border-t"><div v-for="(requirement, index) in form.requirements" :key="index" class="flex items-center gap-4 border-b px-6 py-4 last:border-b-0"><span class="grid size-7 shrink-0 place-items-center rounded-full bg-muted text-xs font-semibold">{{ index + 1 }}</span><div class="min-w-0 flex-1"><p class="text-sm font-medium">{{ requirement.title }}</p><p class="mt-1 text-xs text-muted-foreground">{{ t(`collections.types.${requirement.type}`) }} · {{ t(requirement.required ? 'collections.required' : 'collections.optional') }}</p></div></div></div>
       </section>

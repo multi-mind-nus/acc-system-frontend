@@ -43,7 +43,7 @@ it('defaults to the latest submission and filters every requirement to the selec
   vi.spyOn(reviewApi, 'get').mockResolvedValue(detail)
   const run = (id: string, submissionId: string): ReviewRun => ({
     id, submissionId, status: 'SUCCEEDED', modelVersion: 'mock-reviewer-v1', error: null, createdAt: '', finishedAt: '', documents: submissionId === 'round-2' ? [{ id: 'new', name: 'new.pdf', contentType: 'application/pdf', scope: 'CURRENT' }] : [], searches: [],
-    output: { findings: submissionId === 'round-2' ? [{ requirementId: 'requirement', action: 'ASK_CLIENT', suggestedDecision: 'REQUEST_ACTION', issueCode: 'WRONG_PERIOD', confidence: 0.99, entityCheck: 'MATCH', periodCheck: 'MISMATCH', explanation: '', clientMessage: 'Please upload the correct period.', evidence: [{ documentId: 'new', relation: 'CONTRADICTS', reason: 'Wrong period' }], amounts: [], amountsValid: true, manualReasons: [], autoApplied: false }] : [], extractions: [] },
+    output: { findings: submissionId === 'round-2' ? [{ requirementId: 'requirement', action: 'ASK_CLIENT', suggestedDecision: 'REQUEST_ACTION', issueCode: 'WRONG_PERIOD', entityCheck: 'MATCH', periodCheck: 'MISMATCH', explanation: '', clientMessage: 'Please upload the correct period.', evidence: [{ documentId: 'new', relation: 'CONTRADICTS', reason: 'Wrong period' }], amounts: [], amountsValid: true, manualReasons: [], autoApplied: false }] : [], extractions: [] },
   })
   vi.spyOn(reviewApi, 'runs').mockResolvedValue([run('new-run', 'round-2'), run('old-run', 'round-1')])
   const pinia = createPinia()

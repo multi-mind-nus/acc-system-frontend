@@ -75,7 +75,7 @@ export interface ClassificationChoice { documentId: string; category: 'REQUIREME
 export interface ClassificationRun {
   id: string
   status: 'DRAFT' | 'QUEUED' | 'PROCESSING' | 'SUCCEEDED' | 'FAILED' | 'CANCELLED'
-  provider: 'MOCK' | 'REMOTE' | 'MANUAL' | 'DISABLED'
+  provider: 'MOCK' | 'REMOTE' | 'DEEPSEEK' | 'MANUAL' | 'DISABLED'
   error: string | null
   confirmedAt: string | null
   documents: Array<{ documentId: string; name: string; status: DocumentStatus; failureCode: string | null }>

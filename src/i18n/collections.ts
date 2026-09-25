@@ -1,8 +1,8 @@
 export const collectionsMessages = {
   en: { collections: {
-    aiPolicy: 'AI assistance', aiPolicyHint: 'High-confidence issues can be returned to the client automatically. Documents that pass the AI check still require accountant confirmation.', aiMode: 'Mode', aiModes: { OFF: 'Manual only', SUGGEST: 'Suggestions only', AUTO_REVIEW: 'Auto-return issues' }, aiSatisfyThreshold: 'Passing suggestion', aiReturnThreshold: 'Automatic return', aiThresholdError: 'Choose a review preference for each action.',
-    aiLevels: { moreAutomatic: 'More automatic handling', balanced: 'Balanced (recommended)', moreManual: 'Prefer manual review', existing: 'Keep existing custom setting' },
-    aiLevelHints: { moreAutomatic: 'Allows automatic handling at a lower confidence level; fewer items need manual review.', balanced: 'Requires high confidence before acting; uncertain items go to the accountant.', moreManual: 'Requires an even higher confidence level; more items go to the accountant.', existing: 'This request has a custom rule. Keep it unchanged or choose one of the presets.' },
+    aiPolicy: 'AI assistance', aiPolicyHint: 'In automatic mode, clear issues may be returned to the client. A fully passing round still needs accountant confirmation.', aiMode: 'Mode', aiModes: { OFF: 'Manual only', SUGGEST: 'Suggestions only', AUTO_REVIEW: 'Auto-return issues' },
+    reviewPreference: 'Review preference', reviewPreferences: { CAUTIOUS: 'Cautious', STANDARD: 'Standard', EFFICIENT: 'Efficient' },
+    reviewPreferenceHints: { CAUTIOUS: 'Send incomplete or ambiguous evidence to the accountant unless a specific correction is clear.', STANDARD: 'Request a clear missing or corrected document; send ambiguous cases to the accountant.', EFFICIENT: 'After checking existing evidence, request a specific missing document when possible; ambiguous cases still go to the accountant.' },
     title: 'Collections', description: 'Prepare and track monthly document requests.', new: 'New request',
     dashboard: 'Work queue', dashboardHint: 'Requests that need attention across your clients.', openAll: 'View all requests',
     queues: { awaitingReview: 'Awaiting my review', waitingClient: 'Waiting for client', dueSoon: 'Due soon', overdue: 'Overdue' },
@@ -41,9 +41,9 @@ export const collectionsMessages = {
     events: { CREATED: 'Request created', UPDATED: 'Request updated', REQUIREMENT_ADDED: 'Requirement added', FOLLOW_UP_ADDED: 'Follow-up requirement added', REQUIREMENT_UPDATED: 'Requirement updated', REQUIREMENT_REMOVED: 'Requirement removed', PUBLISHED: 'Request published', CANCELLED: 'Request cancelled', COPIED: 'Copied from a previous request', SUBMITTED: 'Client submitted round {round}', REQUIREMENT_REVIEWED: 'Requirement reviewed', AI_REQUIREMENT_REVIEWED: 'AI completed an item decision', AI_REVIEW_COMPLETED: 'AI review completed', CHANGES_REQUESTED: 'Returned to client', APPROVED: 'Request confirmed', APPROVAL_WITHDRAWN: 'Confirmation withdrawn', CLOSED: 'Request closed' },
   } },
   'zh-CN': { collections: {
-    aiPolicy: 'AI 辅助', aiPolicyHint: '高把握的问题可自动退回客户补交；AI 检查通过的资料仍需会计确认。', aiMode: '模式', aiModes: { OFF: '仅人工处理', SUGGEST: '仅提供建议', AUTO_REVIEW: '异常自动退回' }, aiSatisfyThreshold: '通过建议', aiReturnThreshold: '自动退回', aiThresholdError: '请为两种操作选择处理偏好。',
-    aiLevels: { moreAutomatic: '更多自动处理', balanced: '平衡处理（推荐）', moreManual: '优先人工复核', existing: '保留原有自定义设置' },
-    aiLevelHints: { moreAutomatic: '允许在较低把握下自动执行，减少需要人工复核的资料。', balanced: '只有把握很高时才自动执行，不确定的资料交给会计。', moreManual: '需要更高把握才自动执行，更多资料交给会计复核。', existing: '原请求使用独立设置；保留此项不会更改规则，也可以改选其他档位。' },
+    aiPolicy: 'AI 辅助', aiPolicyHint: '自动审核模式下，明确的问题可退回客户补交；整轮通过后仍需会计确认。', aiMode: '模式', aiModes: { OFF: '仅人工处理', SUGGEST: '仅提供建议', AUTO_REVIEW: '异常自动退回' },
+    reviewPreference: '审核偏好', reviewPreferences: { CAUTIOUS: '谨慎处理', STANDARD: '标准处理', EFFICIENT: '高效处理' },
+    reviewPreferenceHints: { CAUTIOUS: '资料不完整或存在歧义时优先交会计，除非能明确指出需更正什么。', STANDARD: '明确缺失或错误时要求补交；有歧义时交会计。', EFFICIENT: '核查已有资料后，能明确补交内容就直接请求；有歧义仍交会计。' },
     title: '资料收集', description: '创建并跟踪每月客户资料清单。', new: '新建请求',
     dashboard: '工作队列', dashboardHint: '集中查看当前需要处理的客户请求。', openAll: '查看全部请求',
     queues: { awaitingReview: '待我审核', waitingClient: '等待客户', dueSoon: '即将到期', overdue: '已逾期' },
