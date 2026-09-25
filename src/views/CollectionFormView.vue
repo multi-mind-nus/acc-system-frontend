@@ -5,7 +5,7 @@ import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
 import { accountsApi, type ClientAccount, type UserAccount } from '@/api/accounts'
 import { readApiError } from '@/api/client'
-import { collectionsApi, type AIMode, type CollectionDetail, type CollectionSummary, type RequirementInput } from '@/api/collections'
+import { collectionsApi, type AIMode, type CollectionDetail, type RequirementInput } from '@/api/collections'
 import DatePicker from '@/components/DatePicker.vue'
 import ErrorNotice from '@/components/ErrorNotice.vue'
 import MonthPicker from '@/components/MonthPicker.vue'
@@ -38,15 +38,12 @@ const createKey = ref('')
 const step = ref(1)
 const maxStep = ref(1)
 const stepError = ref('')
-const checkingPeriod = ref(false)
-const periodConflict = ref<CollectionSummary | null>(null)
-let periodCheckGeneration = 0
 const invalidField = computed(() => {
   if (!Array.isArray(saveError.value?.details)) return ''
   const location = saveError.value.details[0]?.loc
   return Array.isArray(location) ? location.slice(1).join('.') : ''
 })
-const types = ['BANK_STATEMENT', 'SALES_INVOICE', 'PURCHASE_INVOICE', 'RECEIPT', 'PAYMENT_PLATFORM_REPORT', 'LOAN_STATEMENT', 'OTHER']
+const types = ['BANK_STATEMENT', 'SALES_INVOICE', 'PURCHASE_INVOICE', 'RECEIPT', 'CREDIT_NOTE', 'SALES_REPORT', 'PAYMENT_PLATFORM_REPORT', 'SETTLEMENT_REPORT', 'PAYROLL_REPORT', 'EXPENSE_CLAIM', 'LOAN_STATEMENT', 'FX_ADVICE', 'PROGRESS_CLAIM', 'PAYMENT_CERTIFICATE', 'OPEN_ITEMS_REGISTER', 'OTHER']
 const steps = [
   { step: 1, title: 'collections.stepDetails', description: 'collections.stepDetailsHint' },
   { step: 2, title: 'collections.stepRequirements', description: 'collections.stepRequirementsHint' },
@@ -121,28 +118,10 @@ async function load() {
 function addRequirement() { form.requirements.push(blankRequirement()) }
 function removeRequirement(index: number) { if (form.requirements.length > 1) form.requirements.splice(index, 1) }
 
-async function checkPeriod() {
-  const generation = ++periodCheckGeneration
-  periodConflict.value = null
-  if (isEdit.value || !form.clientId || !form.period) { checkingPeriod.value = false; return false }
-  checkingPeriod.value = true
-  try {
-    const page = await collectionsApi.list({ page: 1, pageSize: 100, clientId: form.clientId, period: `${form.period}-01` })
-    if (generation !== periodCheckGeneration) return false
-    periodConflict.value = page.items.find(item => item.status !== 'CANCELLED') ?? null
-    return Boolean(periodConflict.value)
-  } catch { return false }
-  finally { if (generation === periodCheckGeneration) checkingPeriod.value = false }
-}
-
 async function advance() {
   stepError.value = ''
   if (step.value === 1 && (!form.clientId || !form.period || !form.dueDate || !form.assigneeId || !policyValid.value)) {
     stepError.value = t('collections.completeStep')
-    return
-  }
-  if (step.value === 1 && await checkPeriod()) {
-    stepError.value = t('error.codes.COLLECTION_EXISTS')
     return
   }
   if (step.value === 2 && (!form.requirements.length || !requirementsValid.value)) {
@@ -187,7 +166,6 @@ watch(step, () => { stepError.value = '' })
 watch([() => form.clientId, () => form.period], () => {
   stepError.value = ''
   if (!isEdit.value) { step.value = 1; maxStep.value = 1 }
-  checkPeriod()
 })
 </script>
 
@@ -216,10 +194,6 @@ watch([() => form.clientId, () => form.period], () => {
           <div class="space-y-2"><Label>{{ t('collections.period') }}</Label><MonthPicker v-model="form.period" :label="t('collections.period')" :placeholder="t('collections.choosePeriod')" :disabled="isEdit" /></div>
           <div class="space-y-2"><Label>{{ t('collections.dueDate') }}</Label><DatePicker v-model="form.dueDate" :label="t('collections.dueDate')" :placeholder="t('collections.chooseDate')" /></div>
           <div class="space-y-2"><Label>{{ t('collections.assignee') }}</Label><Select v-model="form.assigneeId" required><SelectTrigger size="lg" class="w-full bg-card" :aria-label="t('collections.assignee')"><SelectValue /></SelectTrigger><SelectContent position="popper"><SelectItem v-for="user in assignees" :key="user.id" :value="user.id">{{ user.name }}</SelectItem></SelectContent></Select></div>
-          <div v-if="periodConflict" role="alert" class="flex flex-wrap items-center gap-3 rounded-xl border border-amber-600/25 bg-amber-500/[0.08] px-4 py-3 text-sm sm:col-span-2 xl:col-span-4">
-            <span class="min-w-0 flex-1">{{ t('error.codes.COLLECTION_EXISTS') }}</span>
-            <Button as-child variant="outline" size="sm"><RouterLink :to="{ name: 'collection-detail', params: { id: periodConflict.id } }">{{ t('collections.openExisting') }}</RouterLink></Button>
-          </div>
           <div class="space-y-2 sm:col-span-2 xl:col-span-4"><Label for="scope-note">{{ t('collections.scopeNote') }}</Label><textarea id="scope-note" v-model="form.scopeNote" maxlength="4000" :placeholder="t('collections.scopePlaceholder')" class="min-h-24 w-full resize-y rounded-xl border bg-card px-3 py-2 text-sm focus-visible:outline-ring" /></div>
         </div>
       </section>
@@ -271,7 +245,7 @@ watch([() => form.clientId, () => form.period], () => {
       <div v-if="saveError" class="space-y-2"><ErrorNotice v-bind="saveError" /><p v-if="invalidField" class="text-sm text-destructive">{{ t('collections.invalidField', { field: invalidField }) }}</p></div>
       <div class="flex flex-wrap gap-3">
         <Button v-if="step > 1" type="button" variant="outline" @click="goBack">{{ t('collections.previousStep') }}</Button>
-        <Button v-if="step < 3" type="button" :disabled="checkingPeriod" @click="advance">{{ t(checkingPeriod ? 'collections.checkingPeriod' : 'collections.nextStep') }}</Button>
+        <Button v-if="step < 3" type="button" @click="advance">{{ t('collections.nextStep') }}</Button>
         <Button v-else type="submit" :disabled="saving">{{ t(saving ? 'collections.saving' : isEdit ? 'collections.save' : 'collections.create') }}</Button>
         <Button as-child variant="ghost"><RouterLink :to="{ name: 'collections' }">{{ t('accounts.cancel') }}</RouterLink></Button>
       </div>

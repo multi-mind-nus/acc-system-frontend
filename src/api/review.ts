@@ -1,5 +1,5 @@
 import { api } from './client'
-import type { CollectionStatus, WorkflowEvent } from './collections'
+import type { CollectionStatus, CollectionSummary, WorkflowEvent } from './collections'
 
 export type EvidenceRelation = 'SUPPORTS' | 'CONTRADICTS' | 'REFERENCE'
 export type ReviewAction = 'SATISFY' | 'REQUEST_ACTION' | 'WAIVE'
@@ -49,6 +49,7 @@ export interface ReviewRequirement {
 }
 
 export interface ReviewCollection {
+  reviewStatus?: CollectionSummary['reviewStatus']
   id: string
   clientId: string
   clientName: string

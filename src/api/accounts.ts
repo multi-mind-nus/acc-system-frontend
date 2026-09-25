@@ -13,6 +13,7 @@ export interface ClientFeatures {
   multiCurrency: boolean; projectBased: boolean; hasRetention: boolean
 }
 export interface ClientAccount {
+  industry: string
   id: string; code: string; legalName: string; baseCurrency: string
   features: ClientFeatures; status: AccountStatus
 }

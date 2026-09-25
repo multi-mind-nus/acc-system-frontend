@@ -16,6 +16,7 @@ import InvitationsPanel from '@/components/InvitationsPanel.vue'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 
 const route = useRoute()
 const router = useRouter()
@@ -34,7 +35,8 @@ const statusOpen = ref(false)
 const error = ref<ReturnType<typeof readApiError> | null>(null)
 const saveError = ref<ReturnType<typeof readApiError> | null>(null)
 const emptyFeatures = (): ClientFeatures => ({ usesPaymentPlatform: false, hasEmployeeReimbursement: false, hasLoan: false, multiCurrency: false, projectBased: false, hasRetention: false })
-const form = reactive({ code: '', legalName: '', baseCurrency: 'SGD', features: emptyFeatures() })
+const industries = ['PROFESSIONAL_SERVICES', 'ONLINE_COMMERCE', 'PROJECT_ENGINEERING', 'TRADING_DISTRIBUTION', 'FOOD_BEVERAGE', 'SOFTWARE_SAAS', 'OTHER']
+const form = reactive({ code: '', legalName: '', baseCurrency: 'SGD', industry: 'OTHER', features: emptyFeatures() })
 const featureKeys = Object.keys(emptyFeatures()) as (keyof ClientFeatures)[]
 let generation = 0
 
@@ -46,14 +48,14 @@ async function load() {
   saved.value = false
   saving.value = false
   statusOpen.value = false
-  Object.assign(form, { code: '', legalName: '', baseCurrency: 'SGD', features: emptyFeatures() })
+  Object.assign(form, { code: '', legalName: '', baseCurrency: 'SGD', industry: 'OTHER', features: emptyFeatures() })
   if (isNew.value) { loading.value = false; return }
   loading.value = true
   try {
     const data = await accountsApi.getClient(id.value)
     if (current !== generation) return
     client.value = data
-    Object.assign(form, { code: data.code, legalName: data.legalName, baseCurrency: data.baseCurrency, features: { ...data.features } })
+    Object.assign(form, { code: data.code, legalName: data.legalName, baseCurrency: data.baseCurrency, industry: data.industry, features: { ...data.features } })
   } catch (caught) { if (current === generation) error.value = readApiError(caught) }
   finally { if (current === generation) loading.value = false }
 }
@@ -67,7 +69,7 @@ async function save() {
   saveError.value = null
   saved.value = false
   try {
-    const body = { legalName: form.legalName.trim(), baseCurrency: form.baseCurrency.toUpperCase(), features: { ...form.features } }
+    const body = { legalName: form.legalName.trim(), baseCurrency: form.baseCurrency.toUpperCase(), industry: form.industry, features: { ...form.features } }
     if (creating) {
       const data = await accountsApi.createClient({ ...body, code: form.code.trim() })
       if (current !== generation || !isNew.value) return
@@ -122,7 +124,8 @@ onBeforeUnmount(() => { generation++ })
             <ErrorNotice v-if="saveError && !statusOpen" v-bind="saveError" />
             <p v-if="saved" role="status" class="text-sm text-primary">{{ t('accounts.saved') }}</p>
             <fieldset :disabled="saving || !isAdmin" class="space-y-6">
-              <div class="grid gap-5 sm:grid-cols-2 lg:grid-cols-[2fr_1fr_1fr]">
+              <div class="grid gap-5 sm:grid-cols-2">
+                <div class="space-y-2"><Label for="client-industry">{{ t('accounts.industry') }}</Label><Select v-model="form.industry" :disabled="saving || !isAdmin"><SelectTrigger id="client-industry" class="h-10 w-full bg-card"><SelectValue /></SelectTrigger><SelectContent><SelectItem v-for="industry in industries" :key="industry" :value="industry">{{ t(`accounts.industries.${industry}`) }}</SelectItem></SelectContent></Select></div>
                 <div class="space-y-2"><Label for="legal-name">{{ t('accounts.name') }}</Label><Input id="legal-name" v-model="form.legalName" required pattern=".*\S.*" maxlength="200" class="h-10 bg-card" /></div>
                 <div class="space-y-2"><Label for="client-code">{{ t('accounts.code') }}</Label><Input id="client-code" v-model="form.code" :disabled="!isNew" required pattern="[A-Za-z0-9_-]+" maxlength="50" class="h-10 bg-card font-mono" /></div>
                 <div class="space-y-2"><Label for="base-currency">{{ t('accounts.currency') }}</Label><Input id="base-currency" v-model="form.baseCurrency" required pattern="[A-Z]{3}" minlength="3" maxlength="3" class="h-10 bg-card font-mono uppercase" @input="form.baseCurrency = form.baseCurrency.toUpperCase()" /></div>

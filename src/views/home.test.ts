@@ -7,6 +7,7 @@ import { useAuthStore } from '@/stores/auth'
 import HomeView from './HomeView.vue'
 
 const client: ClientAccount = {
+  industry: 'OTHER',
   id: 'client-a', code: 'ACME', legalName: 'Acme', baseCurrency: 'SGD', status: 'ACTIVE',
   features: { usesPaymentPlatform: false, hasEmployeeReimbursement: false, hasLoan: false, multiCurrency: false, projectBased: false, hasRetention: false },
 }

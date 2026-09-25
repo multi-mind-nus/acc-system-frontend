@@ -288,7 +288,7 @@ load()
     <template v-else-if="detail">
       <header class="flex flex-wrap items-start justify-between gap-4">
         <div><p class="text-sm text-muted-foreground">{{ detail.clientName }} · {{ formatPeriod(detail.period) }}</p><h1 class="mt-1 text-[32px] leading-tight font-semibold tracking-[-0.025em]">{{ t('review.title') }}</h1></div>
-        <StatusBadge :status="aiRoundPassed ? 'AI_PASSED' : detail.status" translation-prefix="collections.status" />
+        <StatusBadge :status="detail.reviewStatus ?? detail.status" translation-prefix="collections.status" />
       </header>
 
       <ErrorNotice v-if="actionError" v-bind="actionError" />

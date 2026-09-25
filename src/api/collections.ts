@@ -1,8 +1,8 @@
 import { api } from './client'
 import type { Page } from './accounts'
 
-export type CollectionStatus = 'DRAFT' | 'OPEN' | 'IN_REVIEW' | 'CHANGES_REQUESTED' | 'READY_FOR_BOOKKEEPING' | 'CLOSED' | 'CANCELLED'
-export type CollectionFilterStatus = CollectionStatus | 'AI_PASSED'
+export type CollectionStatus = 'DRAFT' | 'OPEN' | 'IN_REVIEW' | 'CHANGES_REQUESTED' | 'READY_FOR_BOOKKEEPING' | 'CANCELLED'
+export type CollectionFilterStatus = CollectionStatus | 'AI_PASSED' | 'PROCESSING' | 'AI_NEEDS_REVIEW' | 'AI_FAILED' | 'AWAITING_ACCOUNTANT'
 export type RequirementStatus = 'PENDING' | 'RECEIVED' | 'NEEDS_ACTION' | 'SATISFIED' | 'WAIVED'
 export type AIMode = 'OFF' | 'SUGGEST' | 'AUTO_REVIEW'
 export type AnalysisType = 'DOCUMENT_REQUIREMENT_VALIDATION' | 'BANK_TRANSACTION_RECONCILIATION'
@@ -37,7 +37,7 @@ export interface CollectionSummary {
   assigneeName: string
   requirementCount: number
   updatedAt: string
-  reviewStatus?: 'PROCESSING' | 'AI_PASSED' | 'AWAITING_ACCOUNTANT' | null
+  reviewStatus?: 'PROCESSING' | 'AI_PASSED' | 'AI_NEEDS_REVIEW' | 'AI_FAILED' | 'AWAITING_ACCOUNTANT' | null
 }
 
 export interface WorkflowEvent {

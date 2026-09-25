@@ -66,7 +66,7 @@ onMounted(load)
           <div v-if="queue.items.length" class="divide-y">
             <RouterLink v-for="item in queue.items" :key="item.id" :to="{ name: 'collection-detail', params: { id: item.id }, query: rowQuery(item) }" class="flex items-center gap-4 px-5 py-4 transition-colors hover:bg-muted/25">
               <span class="min-w-0 flex-1"><span class="block truncate text-sm font-medium">{{ item.clientName }}</span><span class="mt-1 block text-xs text-muted-foreground">{{ formatPeriod(item.period) }} · {{ formatDate(item.dueAt) }}</span></span>
-              <StatusBadge :status="item.reviewStatus === 'AI_PASSED' ? 'AI_PASSED' : item.status" translation-prefix="collections.status" />
+              <StatusBadge :status="item.reviewStatus ?? item.status" translation-prefix="collections.status" />
             </RouterLink>
           </div>
           <p v-else class="px-5 py-8 text-sm text-muted-foreground">{{ t('collections.emptyQueue') }}</p>

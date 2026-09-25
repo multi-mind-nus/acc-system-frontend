@@ -69,7 +69,7 @@ function pollReview() {
   reviewTimer = setTimeout(async () => {
     try {
       const value = await portalApi.get(String(route.params.id))
-      if (!disposed && detail.value) detail.value.reviewStatus = value.reviewStatus
+      if (!disposed && detail.value) detail.value = value
     } catch { /* Keep the submitted state; analysis never blocks manual review. */ }
     pollReview()
   }, 3000)
@@ -77,7 +77,7 @@ function pollReview() {
 watch(() => detail.value?.reviewStatus, pollReview)
 
 const editable = computed(() => detail.value && ['OPEN', 'CHANGES_REQUESTED'].includes(detail.value.status))
-const collectionStatus = computed(() => detail.value?.reviewStatus === 'AI_PASSED' ? 'AI_PASSED' : detail.value?.status ?? '')
+const collectionStatus = computed(() => detail.value?.reviewStatus ?? detail.value?.status ?? '')
 const isOtherBucket = (item: PortalRequirement) => item.id === detail.value?.id
 const requirementEditable = (item: PortalRequirement) => detail.value?.status === 'OPEN'
   || (detail.value?.status === 'CHANGES_REQUESTED' && !isOtherBucket(item) && ['PENDING', 'RECEIVED', 'NEEDS_ACTION'].includes(item.status))
@@ -543,7 +543,7 @@ onBeforeUnmount(() => { disposed = true; clearTimeout(reviewTimer); smartGenerat
 
       <section class="app-panel overflow-hidden">
         <div class="flex flex-wrap items-center gap-4 px-5 py-4">
-          <div class="min-w-0 flex-1"><p class="text-sm font-medium">{{ editable ? t('portal.submitTitle') : t('portal.submittedTitle') }}</p><p class="mt-1 text-xs text-muted-foreground">{{ editable ? t('portal.submitHint') : t('portal.submittedHint') }}</p><p v-if="validationMessage" class="mt-2 text-xs font-medium text-amber-700 dark:text-amber-300">{{ validationMessage }}</p></div>
+          <div class="min-w-0 flex-1"><p class="text-sm font-medium">{{ editable ? t('portal.submitTitle') : (detail.reviewStatus ? t(`collections.status.${detail.reviewStatus}`) : t('portal.submittedTitle')) }}</p><p class="mt-1 text-xs text-muted-foreground">{{ editable ? t('portal.submitHint') : (detail.reviewStatus ? t(`portal.reviewStatus.${detail.reviewStatus}`) : t('portal.submittedHint')) }}</p><p v-if="validationMessage" class="mt-2 text-xs font-medium text-amber-700 dark:text-amber-300">{{ validationMessage }}</p></div>
           <Button v-if="editable" class="h-10" @click="askSubmit">{{ t('portal.submit') }}</Button>
           <span v-else class="inline-flex items-center gap-2 text-sm font-medium text-primary"><CheckCircle2 class="size-4" />{{ t('portal.readOnly') }}</span>
         </div>

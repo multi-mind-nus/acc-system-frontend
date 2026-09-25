@@ -49,7 +49,7 @@ export interface PortalCollectionSummary {
   requiredCount: number
   readyCount: number
   updatedAt: string
-  reviewStatus?: 'PROCESSING' | 'AI_PASSED' | 'AWAITING_ACCOUNTANT' | null
+  reviewStatus?: 'PROCESSING' | 'AI_PASSED' | 'AI_NEEDS_REVIEW' | 'AI_FAILED' | 'AWAITING_ACCOUNTANT' | null
 }
 
 export interface PortalCollectionListQuery {

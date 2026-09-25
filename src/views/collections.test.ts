@@ -27,9 +27,9 @@ it('labels review preferences without rounding existing custom thresholds', () =
   expect(aiThresholdLevel('0.985')).toBe('existing')
 })
 
-it('blocks the first step when the client already has an active request for the period', async () => {
+it('allows the first step when the client already has an active request for the period', async () => {
   vi.spyOn(accountsApi, 'listClients').mockResolvedValue({ items: [{
-    id: 'client', code: 'CLIENT', legalName: 'Client', baseCurrency: 'SGD', status: 'ACTIVE',
+    id: 'client', code: 'CLIENT', legalName: 'Client', baseCurrency: 'SGD', industry: 'OTHER', status: 'ACTIVE',
     features: { usesPaymentPlatform: false, hasEmployeeReimbursement: false, hasLoan: false, multiCurrency: false, projectBased: false, hasRetention: false },
   }], total: 1, page: 1, pageSize: 100 })
   vi.spyOn(collectionsApi, 'list').mockResolvedValue({ items: [{
@@ -53,7 +53,7 @@ it('blocks the first step when the client already has an active request for the 
   app.mount({})
   try {
     const state = (app._instance as unknown as { setupState: {
-      loading: boolean; step: number; stepError: string; periodConflict: CollectionDetail | null
+      loading: boolean; step: number; stepError: string
       policyValid: boolean; requirementsValid: boolean
       form: { aiMode: string; aiSatisfyThreshold: string; aiRequestActionThreshold: string; requirements: RequirementInput[] }
       advance: () => Promise<void>
@@ -74,10 +74,10 @@ it('blocks the first step when the client already has an active request for the 
     expect(state.form.requirements[0]!.criteria).not.toHaveProperty('targetTransaction')
     state.form.requirements[0]!.title = ' '
     expect(state.requirementsValid).toBe(false)
-    await vi.waitFor(() => expect(state.periodConflict?.id).toBe('existing'))
     await state.advance()
-    expect(state.step).toBe(1)
-    expect(state.stepError).toBe('Request already exists.')
+    expect(state.step).toBe(2)
+    expect(state.stepError).toBe('')
+    expect(collectionsApi.list).not.toHaveBeenCalled()
   } finally { app.unmount() }
 })
 

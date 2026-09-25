@@ -22,7 +22,7 @@ const items = ref<PortalCollectionSummary[]>([])
 const loading = ref(true)
 const error = ref<ReturnType<typeof readApiError> | null>(null)
 const filters = ref({ client: 'all', period: '', status: 'all', sort: 'updated_at:desc' })
-const statuses: CollectionFilterStatus[] = ['OPEN', 'IN_REVIEW', 'AI_PASSED', 'CHANGES_REQUESTED', 'READY_FOR_BOOKKEEPING', 'CLOSED', 'CANCELLED']
+const statuses: CollectionFilterStatus[] = ['OPEN', 'IN_REVIEW', 'CHANGES_REQUESTED', 'READY_FOR_BOOKKEEPING', 'CANCELLED']
 const clients = computed(() => auth.user?.clientMemberships ?? [])
 let generation = 0
 let syncingFilters = false
@@ -119,7 +119,7 @@ watch(filters, () => { if (!syncingFilters) navigate() }, { deep: true, flush: '
         <div class="min-w-0">
           <div class="flex flex-wrap items-center gap-2.5">
             <h2 class="text-base font-semibold">{{ formatPeriod(item.period) }}</h2>
-            <StatusBadge :status="item.reviewStatus === 'AI_PASSED' ? 'AI_PASSED' : item.status" translation-prefix="collections.status" />
+            <StatusBadge :status="item.reviewStatus ?? item.status" translation-prefix="collections.status" />
           </div>
           <p class="mt-1.5 text-sm text-muted-foreground">{{ item.clientName }} · {{ t('portal.due', { date: formatDate(item.dueAt) }) }}</p>
           <p class="mt-1 text-xs text-muted-foreground">{{ t('portal.lastUpdated') }} · {{ formatDateTime(item.updatedAt) }}</p>

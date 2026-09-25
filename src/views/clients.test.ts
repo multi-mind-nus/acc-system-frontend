@@ -11,6 +11,7 @@ import ClientsView from './ClientsView.vue'
 import { useAuthStore } from '@/stores/auth'
 
 const client: ClientAccount = {
+  industry: 'OTHER',
   id: 'client-a', code: 'ACME', legalName: 'Acme', baseCurrency: 'SGD', status: 'ACTIVE',
   features: { usesPaymentPlatform: false, hasEmployeeReimbursement: false, hasLoan: false, multiCurrency: false, projectBased: false, hasRetention: false },
 }

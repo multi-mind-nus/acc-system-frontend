@@ -28,7 +28,7 @@ let generation = 0
 
 const canEdit = computed(() => detail.value?.status === 'DRAFT')
 const canCancel = computed(() => detail.value && ['DRAFT', 'OPEN', 'IN_REVIEW', 'CHANGES_REQUESTED'].includes(detail.value.status))
-const displayStatus = computed(() => detail.value?.reviewStatus === 'AI_PASSED' ? 'AI_PASSED' : detail.value?.status ?? '')
+const displayStatus = computed(() => detail.value?.reviewStatus ?? detail.value?.status ?? '')
 const activityEvents = computed(() => detail.value ? [...detail.value.events].reverse() : [])
 const hiddenActivityCount = computed(() => activityEvents.value.length > 8 ? activityEvents.value.length - 5 : 0)
 const visibleActivityEvents = computed(() => activityExpanded.value || !hiddenActivityCount.value
@@ -42,8 +42,8 @@ const eventIcons: Record<string, Component> = {
   APPROVED: BadgeCheck, APPROVAL_WITHDRAWN: RotateCcw, CLOSED: Archive,
 }
 const statusIcons: Record<string, Component> = {
-  DRAFT: FilePenLine, OPEN: Clock3, IN_REVIEW: ClipboardCheck, AI_PASSED: Sparkles, CHANGES_REQUESTED: Clock3,
-  READY_FOR_BOOKKEEPING: BadgeCheck, CLOSED: Archive, CANCELLED: Ban,
+  PROCESSING: Sparkles, AI_NEEDS_REVIEW: ClipboardCheck, AI_FAILED: Clock3, AWAITING_ACCOUNTANT: ClipboardCheck, DRAFT: FilePenLine, OPEN: Clock3, IN_REVIEW: ClipboardCheck, AI_PASSED: Sparkles, CHANGES_REQUESTED: Clock3,
+  READY_FOR_BOOKKEEPING: BadgeCheck, CANCELLED: Ban,
 }
 
 function formatPeriod(value: string) {
@@ -112,7 +112,7 @@ watch(() => props.requestId, () => { activityExpanded.value = false; load() }, {
         <div class="mt-4 flex flex-wrap gap-2">
           <Button v-if="canEdit" size="sm" @click="confirmAction = 'publish'"><Send class="size-4" />{{ t('collections.publish') }}</Button>
           <Button v-if="canEdit" as-child size="sm" variant="outline"><RouterLink :to="{ name: 'collection-edit', params: { id: detail.id } }"><Pencil class="size-4" />{{ t('collections.edit') }}</RouterLink></Button>
-          <Button v-if="['IN_REVIEW', 'CHANGES_REQUESTED', 'READY_FOR_BOOKKEEPING', 'CLOSED'].includes(detail.status)" as-child size="sm" variant="outline"><RouterLink :to="{ name: 'collection-review', params: { id: detail.id } }"><ClipboardCheck class="size-4" />{{ t('review.open') }}</RouterLink></Button>
+          <Button v-if="['IN_REVIEW', 'CHANGES_REQUESTED', 'READY_FOR_BOOKKEEPING'].includes(detail.status)" as-child size="sm" variant="outline"><RouterLink :to="{ name: 'collection-review', params: { id: detail.id } }"><ClipboardCheck class="size-4" />{{ t('review.open') }}</RouterLink></Button>
           <Button as-child size="sm" variant="outline"><RouterLink :to="{ name: 'collection-new', query: { copyFrom: detail.id } }"><Copy class="size-4" />{{ t('collections.copy') }}</RouterLink></Button>
           <Button v-if="canCancel" size="sm" variant="ghost" class="text-destructive" @click="confirmAction = 'cancel'"><XCircle class="size-4" />{{ t('collections.cancel') }}</Button>
           <Button v-if="embedded" as-child size="sm" variant="ghost" class="ml-auto"><RouterLink :to="{ name: 'collection-detail', params: { id: detail.id } }">{{ t('collections.fullPage') }}<ArrowUpRight class="size-4" /></RouterLink></Button>
