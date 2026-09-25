@@ -73,6 +73,7 @@ export interface ReviewFinding {
   periodCheck: 'MATCH' | 'MISMATCH' | 'UNKNOWN'
   explanation: string
   clientMessage: string | null
+  requestedDocumentType?: string | null
   evidence: Array<{ documentId: string; relation: EvidenceRelation; reason: string }>
   amounts: Array<{ currency: string; operation: 'SUM' | 'SUBTRACT' | 'MULTIPLY'; operands: Array<{ documentId: string; amount: string; label: string }>; expectedAmount: string; actualAmount: string; difference: string }>
   amountsValid: boolean
