@@ -5,6 +5,7 @@ import { contactsMessages } from './i18n/contacts'
 import { collectionsMessages } from './i18n/collections'
 import { portalMessages } from './i18n/portal'
 import { reviewMessages } from './i18n/review'
+import { notificationsMessages } from './i18n/notifications'
 
 export type AppLocale = 'en' | 'zh-CN'
 let savedLocale: string | null = null
@@ -19,10 +20,11 @@ const messages = {
     ...collectionsMessages.en,
     ...portalMessages.en,
     ...reviewMessages.en,
-    app: { name: 'Client Records' },
+    ...notificationsMessages.en,
+    app: { name: 'Folio' },
     auth: {
       signIn: 'Sign in', signOut: 'Sign out', email: 'Email', password: 'Password',
-      welcome: 'Sign in to Client Records', hint: 'Use the account provided by your accounting firm.',
+      welcome: 'Sign in to Folio', hint: 'Use the account provided by your accounting firm.',
       signingIn: 'Signing in…', showPassword: 'Show password', hidePassword: 'Hide password',
       collectionTitle: 'Client document collection',
       collectionDescription: 'Keep invoices, receipts and bank statements together for your accounting team.',
@@ -137,10 +139,11 @@ const messages = {
     ...collectionsMessages['zh-CN'],
     ...portalMessages['zh-CN'],
     ...reviewMessages['zh-CN'],
-    app: { name: '客户资料' },
+    ...notificationsMessages['zh-CN'],
+    app: { name: 'Folio' },
     auth: {
       signIn: '登录', signOut: '退出登录', email: '邮箱', password: '密码',
-      welcome: '登录客户资料系统', hint: '使用事务所为你创建的账户登录。', signingIn: '正在登录…',
+      welcome: '登录 Folio', hint: '使用事务所为你创建的账户登录。', signingIn: '正在登录…',
       showPassword: '显示密码', hidePassword: '隐藏密码',
       collectionTitle: '客户资料收集',
       collectionDescription: '集中提交发票、收据和银行对账单，让事务所及时开展记账。',

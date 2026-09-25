@@ -1,5 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import AppShell from '@/components/AppShell.vue'
+import NotificationCenter from '@/components/NotificationCenter.vue'
 import HomeView from '@/views/HomeView.vue'
 import LoginView from '@/views/LoginView.vue'
 import NotFoundView from '@/views/NotFoundView.vue'
@@ -31,6 +32,7 @@ export const router = createRouter({
       children: [
         { path: '', name: 'staff-home', component: DashboardView },
         { path: 'profile', name: 'staff-profile', component: ProfileView },
+        { path: 'notifications', name: 'staff-notifications', component: NotificationCenter, props: { area: 'staff', pageView: true }, meta: { title: 'notifications.title' } },
         { path: 'collections', name: 'collections', component: CollectionsView, meta: { title: 'collections.title' } },
         { path: 'collections/new', name: 'collection-new', component: CollectionFormView, meta: { title: 'collections.new' } },
         { path: 'collections/:id/edit', name: 'collection-edit', component: CollectionFormView, meta: { title: 'collections.edit' } },
@@ -52,6 +54,7 @@ export const router = createRouter({
         { path: 'collections', name: 'portal-collections', component: PortalCollectionsView, meta: { title: 'portal.title' } },
         { path: 'collections/:id', name: 'portal-collection-detail', component: PortalCollectionDetailView, meta: { title: 'portal.request' } },
         { path: 'profile', name: 'client-profile', component: ProfileView },
+        { path: 'notifications', name: 'client-notifications', component: NotificationCenter, props: { area: 'client', pageView: true }, meta: { title: 'notifications.title' } },
         { path: 'contacts', name: 'client-contacts', component: ContactsView, meta: { clientAdmin: true, title: 'accounts.contacts' } },
         { path: 'forbidden', name: 'client-forbidden', component: ForbiddenView, meta: { title: 'accounts.forbidden' } },
         { path: ':pathMatch(.*)*', name: 'client-not-found', component: NotFoundView },

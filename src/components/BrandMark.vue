@@ -8,9 +8,10 @@ defineProps<{ inverted?: boolean }>()
     :class="inverted ? 'bg-sidebar-primary text-sidebar-primary-foreground' : 'bg-primary text-primary-foreground'"
     aria-hidden="true"
   >
-    <svg viewBox="0 0 24 24" class="size-[18px]" fill="none" stroke="currentColor" stroke-width="1.6">
-      <path d="M6.5 3.5h8l3 3v14h-11z" />
-      <path d="M14.5 3.5v4h4M9 11h6M9 15h2.5M13.5 15H15M9 18h6" />
+    <svg viewBox="0 0 32 32" class="size-7" fill="currentColor">
+      <path d="M8 8a2 2 0 0 1 2-2h2v17l-4 3V8Z" />
+      <path d="M14 6h12l-3.4 4.2a2 2 0 0 1-1.6.8h-7V6Z" />
+      <path d="M14 14h9l-3.4 4.2a2 2 0 0 1-1.6.8h-4v-5Z" opacity=".7" />
     </svg>
   </span>
 </template>

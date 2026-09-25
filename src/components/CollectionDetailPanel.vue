@@ -38,7 +38,7 @@ const currentStep = computed(() => visibleActivityEvents.value.length + 1)
 const eventIcons: Record<string, Component> = {
   CREATED: FilePlus2, UPDATED: FilePenLine, REQUIREMENT_ADDED: ListChecks, FOLLOW_UP_ADDED: ListChecks,
   REQUIREMENT_UPDATED: FilePenLine, REQUIREMENT_REMOVED: ListChecks, PUBLISHED: Send, CANCELLED: Ban,
-  COPIED: Copy, SUBMITTED: Upload, REQUIREMENT_REVIEWED: ClipboardCheck, AI_REQUIREMENT_REVIEWED: Sparkles, CHANGES_REQUESTED: Undo2,
+  COPIED: Copy, SUBMITTED: Upload, REQUIREMENT_REVIEWED: ClipboardCheck, AI_REQUIREMENT_REVIEWED: Sparkles, AI_REVIEW_COMPLETED: Sparkles, CHANGES_REQUESTED: Undo2,
   APPROVED: BadgeCheck, APPROVAL_WITHDRAWN: RotateCcw, CLOSED: Archive,
 }
 const statusIcons: Record<string, Component> = {

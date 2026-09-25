@@ -42,7 +42,7 @@ export interface CollectionSummary {
 
 export interface WorkflowEvent {
   id: string
-  actorId: string
+  actorId: string | null
   actorName: string
   eventType: string
   payload: Record<string, unknown>
